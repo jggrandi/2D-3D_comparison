@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <handle3ddataset.h>
 
+
 int main(int argc, char **argv)
 {
 	int option_index = 0;
@@ -21,7 +22,7 @@ int main(int argc, char **argv)
 
 	printf("%s:[%dx%dx%d]\n", img1Info.inputFileName,img1Info.resWidth,img1Info.resHeight,img1Info.resDepth);
 	
-	Handle3DDataset d1(img1Info);
+	Handle3DDataset <char>d1(img1Info);
 
 	d1.loadFile();
 
@@ -60,40 +61,50 @@ int main(int argc, char **argv)
 
 	printf("SubImg1\n");
 
-	int wEndSubImage = 8;
-	int hEndSubImage = 8;
-
-	int wInitSubImage = 0;
-	int hInitSubImage = 0;
+	int wTamanho = 4;
+	int hTamanho = 4;
 
 
-	for (int k = 0; k < 4; ++k)
+
+	for (int i = 0; i < img1Info.resWidth; ++i)
 	{
-		for (int i = wInitSubImage; i < wEndSubImage; ++i)
+		for (int j = 0; j < img1Info.resHeight; ++j)
 		{
-			for (int j = hInitSubImage; j < hEndSubImage; ++j)
-			{
-				subImg[k][i*8+j] = data2[i*wEndSubImage+j];
-			}
-			//wInitSubImage=
+			printf("%d ",data2[i*img1Info.resWidth+j]);					
 		}
-		wInitSubImage+=wEndSubImage;
-		hInitSubImage+=hEndSubImage;
-		wEndSubImage+=8;
-		hEndSubImage+=8;
 	}
+	printf("\n\n");
 
-	for (int k = 0; k < 4; ++k)
-	{
-		for (int i = 0; i < 8; ++i)
-		{
-			for (int j = 0; j < 8; ++j)
-			{
-				printf("%d ",subImg[k][i*8+j]);
-			}
-		}
-		printf("\n\n");
-	}
+
+
+	// for (int k = 0; k < 4; ++k)
+	// {
+	// 	for (int i = wInitSubImage; i < wEndSubImage; ++i)
+	// 	{
+	// 		for (int j = hInitSubImage; j < hEndSubImage; ++j)
+	// 		{
+	// 			printf("k[%d],%d,%d   ",k,i*8+j,i*wEndSubImage+j);
+	// 			subImg[k][i*8+j] = data2[i*wEndSubImage+j];
+	// 		}
+	// 		//wInitSubImage=
+	// 	}
+	// 	wInitSubImage+=wEndSubImage;
+	// 	hInitSubImage+=hEndSubImage;
+	// 	wEndSubImage+=8;
+	// 	hEndSubImage+=8;
+	// }
+
+	// for (int k = 0; k < 4; ++k)
+	// {
+	// 	for (int i = 0; i < 8; ++i)
+	// 	{
+	// 		for (int j = 0; j < 8; ++j)
+	// 		{
+	// 			printf("%d ",subImg[k][i*8+j]);
+	// 		}
+	// 	}
+	// 	printf("\n\n");
+	// }
 
 	
 
