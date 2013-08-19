@@ -29,17 +29,17 @@ int main(int argc, char **argv)
 	char **data1 = d1.getDataset();
 	char *data2 = data1[0];
 
-	for (int k = img1Info.initStack; k < img1Info.endStack; ++k)
-	{
-		for (int i = 0; i < img1Info.resWidth; ++i)
-		{
-			for (int j = 0; j < img1Info.resHeight; ++j)
-			{
-				printf("%d ",data1[k][i*img1Info.resWidth+j]);
-			}
-		}
-		printf("\n\n");
-	}
+	// for (int k = img1Info.initStack; k < img1Info.endStack; ++k)
+	// {
+	// 	for (int i = 0; i < img1Info.resWidth; ++i)
+	// 	{
+	// 		for (int j = 0; j < img1Info.resHeight; ++j)
+	// 		{
+	// 			printf("%d ",data1[k][i*img1Info.resWidth+j]);
+	// 		}
+	// 	}
+	// 	printf("\n\n");
+	// }
 
 	printf("Img2D\n");
 	for (int i = 0; i < img1Info.resWidth; ++i)
@@ -48,27 +48,36 @@ int main(int argc, char **argv)
 		{
 			printf("%d ",data2[i*img1Info.resWidth+j]);					
 		}
+		printf("\n");
 	}
-	printf("\n\n");
+	printf("\n\n\n");
 
-	int offset = 2;
-	int cont=0;
+	char *subImg;
+	
+	int kernel = 1; //tamanho do kernel
+	
+	subImg = (char*)malloc(sizeof(char)* kernel+1*kernel+1);//sub imagens
+	int offset = kernel; // o offset minimo é o tamanho do kernel
+
+	int ii=0;
+	int jj=0;
+
 	for (int i = offset; i < img1Info.resWidth-offset; ++i) //percorre imagem pixel 
 	{
 		for (int j = offset; j < img1Info.resHeight-offset; ++j) //a pixel
 		{	
-			cont++;
-			//if(i >= offset && j>=offset ) //offset deve ser maior igual q i e j, para a subimagem sempre conter informações válidas
-			for(int sub_i = -offset; sub_i <= offset; sub_i++) //coluna 
-			{
-				for(int sub_j = -offset; sub_j <= offset; sub_j++) //linha
-				{
 
-					printf("%d,%d\n",i-sub_i,j-sub_j );
+			for(int sub_i = -kernel+1, ii=0; sub_i < kernel+1; sub_i++,ii++) //coluna 
+			{
+				for(int sub_j = -kernel+1, jj=0; sub_j < kernel+1; sub_j++,jj++) //linha
+				{
+					subImg[ii*(kernel+1*kernel+1)+jj]=data2[(i-sub_i)*(kernel+1*kernel+1)+(j-sub_j)];
+					printf("%d ",subImg[ii*(kernel+1*kernel+1)+jj] );
 				}
+				printf("\n");
 			}	
 
-			printf("%d\n\n\n",cont);
+			printf("\n\n\n");
 		}
 	}	
 
