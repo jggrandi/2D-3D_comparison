@@ -51,29 +51,52 @@ int main(int argc, char **argv)
 	}
 	printf("\n\n");
 
-	char **subImg;
-
-	subImg = (char**)malloc(4 * sizeof(char*)); 
-	for (int k = 0; k < 4; ++k) //4 sub imagens
+	int offset = 2;
+	int cont=0;
+	for (int i = offset; i < img1Info.resWidth-offset; ++i) //percorre imagem pixel 
 	{
-		subImg[k] = (char*)malloc(sizeof(char)* 8*8);//sub imagens de 8x8
-	}
+		for (int j = offset; j < img1Info.resHeight-offset; ++j) //a pixel
+		{	
+			cont++;
+			//if(i >= offset && j>=offset ) //offset deve ser maior igual q i e j, para a subimagem sempre conter informações válidas
+			for(int sub_i = -offset; sub_i <= offset; sub_i++) //coluna 
+			{
+				for(int sub_j = -offset; sub_j <= offset; sub_j++) //linha
+				{
 
-	printf("SubImg1\n");
+					printf("%d,%d\n",i-sub_i,j-sub_j );
+				}
+			}	
 
-	int wTamanho = 4;
-	int hTamanho = 4;
-
-
-
-	for (int i = 0; i < img1Info.resWidth; ++i)
-	{
-		for (int j = 0; j < img1Info.resHeight; ++j)
-		{
-			printf("%d ",data2[i*img1Info.resWidth+j]);					
+			printf("%d\n\n\n",cont);
 		}
-	}
-	printf("\n\n");
+	}	
+
+
+
+	// char **subImg;
+
+	// subImg = (char**)malloc(4 * sizeof(char*)); 
+	// for (int k = 0; k < 4; ++k) //4 sub imagens
+	// {
+	// 	subImg[k] = (char*)malloc(sizeof(char)* 8*8);//sub imagens de 8x8
+	// }
+
+	// printf("SubImg1\n");
+
+	// int wTamanho = 4;
+	// int hTamanho = 4;
+
+
+
+	// for (int i = 0; i < img1Info.resWidth; ++i)
+	// {
+	// 	for (int j = 0; j < img1Info.resHeight; ++j)
+	// 	{
+	// 		printf("%d ",data2[i*img1Info.resWidth+j]);					
+	// 	}
+	// }
+	// printf("\n\n");
 
 
 
