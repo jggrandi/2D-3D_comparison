@@ -29,19 +29,8 @@ int main(int argc, char **argv)
 	char **data1 = d1.getDataset();
 	char *data2 = data1[0];
 
-	// for (int k = img1Info.initStack; k < img1Info.endStack; ++k)
-	// {
-	// 	for (int i = 0; i < img1Info.resWidth; ++i)
-	// 	{
-	// 		for (int j = 0; j < img1Info.resHeight; ++j)
-	// 		{
-	// 			printf("%d ",data1[k][i*img1Info.resWidth+j]);
-	// 		}
-	// 	}
-	// 	printf("\n\n");
-	// }
 
-	printf("Img2D\n");
+	printf("#########Img2D\n");
 	for (int i = 0; i < img1Info.resWidth; ++i)
 	{
 		for (int j = 0; j < img1Info.resHeight; ++j)
@@ -54,33 +43,68 @@ int main(int argc, char **argv)
 
 	char *subImg;
 	
-	int kernel = 1; //tamanho do kernel
-	
-	subImg = (char*)malloc(sizeof(char)* kernel+1*kernel+1);//sub imagens
+	int kernel = 3; //tamanho do kernel
+	int pBase = (kernel * 2) + 1;
 	int offset = kernel; // o offset minimo é o tamanho do kernel
+	subImg = (char*)malloc(sizeof(char)* pBase*pBase);//sub imagens
+	
 
-	int ii=0;
-	int jj=0;
-
-	for (int i = offset; i < img1Info.resWidth-offset; ++i) //percorre imagem pixel 
+	#define ijn(a,b,n) ((a)*(n))+b
+	
+	for (int i = offset; i < img1Info.resWidth-offset; i++) //percorre imagem pixel //coluna
 	{
-		for (int j = offset; j < img1Info.resHeight-offset; ++j) //a pixel
+		for (int j = offset; j < img1Info.resHeight-offset; j++) //a pixel //linha
 		{	
-
-			for(int sub_i = -kernel+1, ii=0; sub_i < kernel+1; sub_i++,ii++) //coluna 
+			for(int ii=0; ii < pBase; ii++)
 			{
-				for(int sub_j = -kernel+1, jj=0; sub_j < kernel+1; sub_j++,jj++) //linha
+				for(int jj=0; jj < pBase; jj++)
 				{
-					subImg[ii*(kernel+1*kernel+1)+jj]=data2[(i-sub_i)*(kernel+1*kernel+1)+(j-sub_j)];
-					printf("%d ",subImg[ii*(kernel+1*kernel+1)+jj] );
+					int pData2 = ijn(i-kernel+ii, j-kernel+jj ,img1Info.resWidth);
+					subImg[ijn(ii, jj, pBase)] = data2[pData2];
+					printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
 				}
 				printf("\n");
-			}	
-
+			}
 			printf("\n\n\n");
 		}
 	}	
 
+	printf("##########Img3D\n");
+	for (int k = img1Info.initStack; k < img1Info.endStack; ++k)
+	{
+		for (int i = 0; i < img1Info.resWidth; ++i)
+		{
+			for (int j = 0; j < img1Info.resHeight; ++j)
+			{
+				printf("%d ",data1[k][i*img1Info.resWidth+j]);
+			}
+			printf("\n");
+		}
+		printf("\n\n");
+	}
+
+	printf("####SUB\n");
+	for (int k = 0; k < img1Info.resDepth; k++)
+	{
+		for (int i = offset; i < img1Info.resWidth-offset; i++) //percorre imagem pixel //coluna
+		{
+			for (int j = offset; j < img1Info.resHeight-offset; j++) //a pixel //linha
+			{	
+				for(int ii=0; ii < pBase; ii++)
+				{
+					for(int jj=0; jj < pBase; jj++)
+					{
+						int pData2 = ijn(i-kernel+ii, j-kernel+jj ,img1Info.resWidth);
+						subImg[ijn(ii, jj, pBase)] = data1[k][pData2];
+						printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
+					}
+					printf("\n");
+				}
+				printf("\n\n\n");
+			}
+		}
+		printf("################\n");
+	}
 
 
 	// char **subImg;
