@@ -4,12 +4,119 @@
 #include <ctime>
 
 #define ijn(a,b,n) ((a)*(n))+b
+#define V false
+
+#define KERNEL 1
+#define PBASE KERNEL*2+1
+#define OFFSET KERNEL
+
+
+void buildImagePlanes(int d, int w, int h, int img_w)
+{
+	if(V)printf("________AXIAL\n");
+	for(int i = 0; i < PBASE; i++)
+	{
+		for(int j = 0; j < PBASE; j++)
+		{
+			if(V)printf("[%d,%d] ",d-KERNEL+1,ijn(w-KERNEL+i,h-KERNEL+j,img_w));
+		}
+		if(V)printf("\n");	
+	}
+	if(V)printf("\n");
+
+	if(V)printf("________DIAGONAL PRINCIPAL AXIAL\n");
+	for(int i = 0; i < PBASE; i++)
+	{
+		for(int j = 0; j < PBASE; j++)
+		{
+			if(V)printf("[%d,%d] ",d-KERNEL+i,ijn(w-KERNEL+j,h-KERNEL+j,img_w));
+		}
+		if(V)printf("\n");	
+	}
+	if(V)printf("\n");
+
+	if(V)printf("______DIAGONAL SECUNDARIA AXIAL\n");
+	for(int i = 0; i < PBASE; i++)
+	{
+		for (int j = 0; j < PBASE; j++)
+		{
+			if(V)printf("[%d,%d] ",d-KERNEL+i,ijn(w-KERNEL+j,h-KERNEL+PBASE-j-1,img_w));	
+		}
+		if(V)printf("\n");
+	}
+	if(V)printf("\n");
+
+	if(V)printf("________CORONAL\n");
+	for(int i = 0; i < PBASE; i++)
+	{
+		for(int j = 0; j < PBASE; j++)
+		{
+			if(V)printf("[%d,%d] ",d-KERNEL+j,ijn(w-KERNEL+1,h-KERNEL+i,img_w));
+		}
+		if(V)printf("\n");	
+	}
+	if(V)printf("\n");
+
+	if(V)printf("_______DIAGONAL PRINCIPAL CORONAL\n");
+	for(int i = 0; i < PBASE; i++)
+	{
+		for(int j = 0; j < PBASE; j++)
+		{
+			if(V)printf("[%d,%d] ",d-KERNEL+i,ijn(w-KERNEL+j,h-KERNEL+i,img_w));
+		}
+		if(V)printf("\n");	
+	}
+	if(V)printf("\n");
+
+	if(V)printf("_______DIAGONAL SECUNDARIA CORONAL\n");
+	for(int i = PBASE-1; i >= 0; i--)
+	{
+		for(int j = 0; j < PBASE; j++)
+		{
+			if(V)printf("[%d,%d] ",d-KERNEL+i,ijn(w-KERNEL+j,h-KERNEL+i,img_w));
+		}
+		if(V)printf("\n");	
+	}
+	if(V)printf("\n");
+
+	if(V)printf("________SAGITTAL\n");
+	for(int i = 0; i < PBASE; i++)
+	{
+		for(int j = 0; j < PBASE; j++)
+		{
+			if(V)printf("[%d,%d] ",d-KERNEL+j,ijn(w-KERNEL+i,h-KERNEL+1,img_w));
+		}
+		if(V)printf("\n");	
+	}
+	if(V)printf("\n");
+
+	if(V)printf("________DIAGONAL PRINCIPAL SAGITAL\n");
+	for(int i = 0; i < PBASE; i++)
+	{
+		for(int j = 0; j < PBASE; j++)
+		{
+			if(V)printf("[%d,%d] ",d-KERNEL+i,ijn(w-KERNEL+i,h-KERNEL+j,img_w));
+		}
+	if(V)	printf("\n");	
+	}
+	if(V)printf("\n");
+
+	if(V)printf("______DIAGONAL SECUNDARIA SAGITAL\n");
+	for(int i = PBASE-1; i >= 0; i--)
+	{
+		for(int j = 0; j < PBASE; j++)
+		{
+			if(V)printf("[%d,%d] ",d-KERNEL+i,ijn(w-KERNEL+i,h-KERNEL+j,img_w));
+		}
+		if(V)printf("\n");	
+	}
+	if(V)printf("\n");
+}
 
 int main(int argc, char **argv)
 {
 	int option_index = 0;
-	bool v = false; // verbose mode
-	bool approx_runtime = false;
+
 	DATAINFO img1Info;
 
 	if (argc != 6)
@@ -47,11 +154,7 @@ int main(int argc, char **argv)
 	// printf("\n\n\n");
 
 	char *subImg;
-	
-	int kernel = 1; //tamanho do kernel
-	int pBase = (kernel * 2) + 1;
-	int offset = kernel; // o offset minimo é o tamanho do kernel
-	subImg = (char*)malloc(sizeof(char)* pBase*pBase);//sub imagens
+	subImg = (char*)malloc(sizeof(char)* PBASE*PBASE);//sub imagens
 	
 	
 	// for (int i = offset; i < img1Info.resWidth-offset; i++) //percorre imagem pixel //coluna
@@ -75,6 +178,10 @@ int main(int argc, char **argv)
 //****************************
 	printf("############### PERCORRE VOLUME\n");
 
+
+
+	clock_t start = clock();
+	
 	// // slice por slice comum
 	// for (int k = img1Info.initStack; k < img1Info.endStack; ++k)
 	// {
@@ -89,139 +196,32 @@ int main(int argc, char **argv)
 	// 	if(v)printf("\n\n");
 	// }
 
-
-	clock_t start = clock();
-	clock_t time_estimated;
-
-	for (int iii = offset; iii < img1Info.resWidth-offset; iii++) //percorre imagem pixel //coluna
+	
+	for (int d = OFFSET; d < img1Info.resDepth-OFFSET; d++)
 	{
-		for (int jjj = offset; jjj < img1Info.resHeight-offset; jjj++) //a pixel //linha
-		{	
-			for(int iiii=0; iiii < pBase; iiii++)
-			{
-				for(int jjjj=0; jjjj < pBase; jjjj++)
-				{
-
-					if(jjj==8 && !approx_runtime) time_estimated = clock();
-					for (int k = offset; k < img1Info.resDepth-offset; k++)
-					{
-						for (int i = offset; i < img1Info.resWidth-offset; i++) //percorre imagem pixel //coluna
-						{
-							for (int j = offset; j < img1Info.resHeight-offset; j++) //a pixel //linha
-							{	
-								if(v)printf("%d\n",data1[k][ijn(i,j,img1Info.resWidth)]);
-								if(v)printf("**** AXIAL\n");
-								for(int ii=0; ii < pBase; ii++)
-								{
-									for(int jj=0; jj < pBase; jj++)
-									{
-										int pData2 = ijn(i-kernel+ii, j-kernel+jj ,img1Info.resWidth);
-										subImg[ijn(ii, jj, pBase)] = data1[k][pData2];
-										if(v) printf("[%d][%d] ", k, pData2 ); 
-										//printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
-									}
-									if(v)printf("\n");
-								}
-								//subImg = NULL;
-								//subImg = (char*)malloc(sizeof(char)* pBase*pBase);
-								if(v)printf("**** CORONAL\n");
-								for(int ii=0; ii < pBase; ii++)
-								{
-									for(int jj=0; jj < pBase; jj++)
-									{
-										int pData2 = ijn(i-kernel+ii, j-kernel+jj ,img1Info.resWidth);
-										subImg[ijn(ii, jj, pBase)] = data1[k-kernel+ii][pData2];
-										if(v)printf("[%d][%d] ", k-kernel+ii, pData2 ); 
-										//printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
-									}
-									if(v)printf("\n");
-								}
-								//subImg = NULL;
-								//subImg = (char*)malloc(sizeof(char)* pBase*pBase);				
-								if(v)printf("**** SAGITTAL\n");
-								for(int ii=0; ii < pBase; ii++)
-								{
-									for(int jj=0; jj < pBase; jj++)
-									{
-										int pData2 = ijn(k-kernel+ii, i-kernel+jj ,img1Info.resWidth);
-										subImg[ijn(ii, jj, pBase)] = data1[j-kernel+jj][pData2];
-										if(v)printf("[%d][%d] ", j-kernel+jj, pData2 ); 
-										//printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
-									}
-									if(v)printf("\n");
-								}
-								//subImg = NULL;
-								//subImg = (char*)malloc(sizeof(char)* pBase*pBase);
-								if(v)printf("**** TRANSVERSARL 1\n");
-								for(int ii=0; ii < pBase; ii++)
-								{
-									for(int jj=0; jj < pBase; jj++)
-									{
-										int pData2 = ijn(i-kernel+ii, j-kernel+jj ,img1Info.resWidth);
-										subImg[ijn(ii, jj, pBase)] = data1[k-kernel+ii][pData2];
-										if(v)printf("[%d][%d] ", k-kernel+ii, pData2 ); 
-										//printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
-									}
-									if(v)printf("\n");
-								}
-								//subImg = NULL;
-								//subImg = (char*)malloc(sizeof(char)* pBase*pBase);				
-								if(v)printf("**** TRANSVERSAL 2\n");
-								for(int ii=0; ii < pBase; ii++)
-								{
-									for(int jj=0; jj < pBase; jj++)
-									{
-										int pData2 = ijn(k-kernel+ii, i-kernel+jj ,img1Info.resWidth);
-										subImg[ijn(ii, jj, pBase)] = data1[j-kernel+jj][pData2];
-										if(v)printf("[%d][%d] ", j-kernel+jj, pData2 ); 
-										//printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
-									}
-									if(v)printf("\n");
-								}
-								//subImg = NULL;
-								//subImg = (char*)malloc(sizeof(char)* pBase*pBase);
-								if(v)printf("**** TRANSVERSAL 3\n");
-								for(int ii=0; ii < pBase; ii++)
-								{
-									for(int jj=0; jj < pBase; jj++)
-									{
-										int pData2 = ijn(i-kernel+jj, j-kernel+jj ,img1Info.resWidth);
-										subImg[ijn(ii, jj, pBase)] = data1[k-kernel+ii][pData2];
-										if(v)printf("[%d][%d] ", k-kernel+ii, pData2 ); 
-										//printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
-									}
-									if(v)printf("\n");
-								}
-								//subImg = NULL;
-								//subImg = (char*)malloc(sizeof(char)* pBase*pBase);
-								if(v)printf("**** TRANSVERSAL 4\n");
-								for(int ii=0; ii < pBase; ii++)
-								{
-									for(int jj=0; jj < pBase; jj++)
-									{
-										int pData2 = ijn(i-kernel+ii, j-kernel+ii ,img1Info.resWidth);
-										subImg[ijn(ii, jj, pBase)] = data1[k-kernel+ii][pData2];
-										if(v)printf("[%d][%d] ", k-kernel+jj, pData2 ); 
-										//printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
-									}
-									if(v)printf("\n");
-								}								
-
-							}
-						}
-						if(v)printf("################\n");
-					}
-					if(jjj==8 && !approx_runtime) 
-					{
-						time_estimated = clock() - time_estimated;
-  						printf ("(Approx runtime:%f seconds).\n",img1Info.resWidth*img1Info.resWidth*pBase*pBase*((float)time_estimated)/CLOCKS_PER_SEC);
-						printf ("(One interaction: %f seconds).\n",((float)time_estimated)/CLOCKS_PER_SEC);  						
-  						approx_runtime = true;
-  					}
-				}
+		for (int w = OFFSET; w < img1Info.resWidth-OFFSET; w++) //percorre imagem pixel //coluna
+		{
+			for (int h = OFFSET; h < img1Info.resHeight-OFFSET; h++) //a pixel //linha
+			{	
+				if(V)printf("\n[%d,%d]\n",d,ijn(w,h,img1Info.resWidth));
+				buildImagePlanes(d,w,h,img1Info.resWidth);
+				//if(V)printf("**** AXIAL\n");
+				// for(int ii=0; ii < pBase; ii++)
+				// {
+				// 	for(int jj=0; jj < pBase; jj++)
+				// 	{
+				// 		int pData2 = ijn(i-kernel+ii, j-kernel+jj ,img1Info.resWidth);
+				// 		//subImg[ijn(ii, jj, pBase)] = data1[k][pData2];
+				// 		if(V) printf("[%d][%d] ", k, pData2 ); 
+				// 		//printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
+				// 	}
+				// 	if(V)printf("\n");
+				// }
 			}
 		}
+		if(V)printf("################\n");
 	}
+
 	start = clock() - start;
   	printf ("(%f seconds).\n",((float)start)/CLOCKS_PER_SEC);
 	// printf("**** CORONAL \n");
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
 	// 	{
 	// 		for (int j = offset; j < img1Info.resHeight-offset; ++j)
 	// 		{
-	// 			for(int ii=0; ii < pBase; ii++)
+	// 			Xfor(int ii=0; ii < pBase; ii++)
 	// 			{
 	// 				for(int jj=0; jj < pBase; jj++)
 	// 				{
