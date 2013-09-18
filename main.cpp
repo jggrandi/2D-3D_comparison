@@ -1,7 +1,12 @@
 #include <cstdlib>
 #include <handle3ddataset.h>
+
+#include <opencv2/core/core.hpp>  
+
 #include <fstream>
 #include <ctime>
+
+using namespace cv;
 
 #define ijn(a,b,n) ((a)*(n))+b
 #define V false
@@ -68,12 +73,12 @@ void buildImagePlanes(int d, int w, int h, int img_w)
 	}
 	if(V)printf("\n");
 
-	if(V)printf("_______DIAGONAL SECUNDARIA CORONAL\n");
-	for(int i = PBASE-1; i >= 0; i--)
+	if(V)printf("___#___NEWDIAGONAL SECUNDARIA CORONAL\n");
+	for(int i = 0; i < PBASE; i++)
 	{
 		for(int j = 0; j < PBASE; j++)
 		{
-			if(V)printf("[%d,%d] ",d-KERNEL+i,ijn(w-KERNEL+j,h-KERNEL+i,img_w));
+			if(V)printf("[%d,%d] ",d-KERNEL+(PBASE-i-1),ijn(w-KERNEL+j,h-KERNEL+(PBASE-i-1),img_w));
 		}
 		if(V)printf("\n");	
 	}
@@ -101,12 +106,12 @@ void buildImagePlanes(int d, int w, int h, int img_w)
 	}
 	if(V)printf("\n");
 
-	if(V)printf("______DIAGONAL SECUNDARIA SAGITAL\n");
-	for(int i = PBASE-1; i >= 0; i--)
+	if(V)printf("___#___NEWDIAGONAL SECUNDARIA SAGITAL\n");
+	for(int i = 0; i < PBASE; i++)
 	{
 		for(int j = 0; j < PBASE; j++)
 		{
-			if(V)printf("[%d,%d] ",d-KERNEL+i,ijn(w-KERNEL+i,h-KERNEL+j,img_w));
+			if(V)printf("[%d,%d] ",d-KERNEL+(PBASE-i-1),ijn(w-KERNEL+(PBASE-i-1),h-KERNEL+j,img_w));
 		}
 		if(V)printf("\n");	
 	}
@@ -140,7 +145,6 @@ int main(int argc, char **argv)
 
 	char **data1 = d1.getDataset();
 	char *data2 = data1[0];
-
 
 	// printf("#########Img2D\n");
 	// for (int i = 0; i < img1Info.resWidth; ++i)
@@ -196,7 +200,7 @@ int main(int argc, char **argv)
 	// 	if(v)printf("\n\n");
 	// }
 
-	
+
 	for (int d = OFFSET; d < img1Info.resDepth-OFFSET; d++)
 	{
 		for (int w = OFFSET; w < img1Info.resWidth-OFFSET; w++) //percorre imagem pixel //coluna
@@ -224,60 +228,6 @@ int main(int argc, char **argv)
 
 	start = clock() - start;
   	printf ("(%f seconds).\n",((float)start)/CLOCKS_PER_SEC);
-	// printf("**** CORONAL \n");
-
-	// std::swap(img1Info.resHeight,img1Info.resDepth);
-
-	// // slice por slice coronal view
-	// for (int k = offset; k < img1Info.resDepth-offset; ++k)
-	// {
-	// 	for (int i = offset; i < img1Info.resWidth-offset; ++i)
-	// 	{
-	// 		for (int j = offset; j < img1Info.resHeight-offset; ++j)
-	// 		{
-	// 			Xfor(int ii=0; ii < pBase; ii++)
-	// 			{
-	// 				for(int jj=0; jj < pBase; jj++)
-	// 				{
-	// 					int pData2 = ijn(i-kernel+ii, k-kernel+jj ,img1Info.resWidth);
-	// 					subImg[ijn(ii, jj, pBase)] = data1[j][pData2];
-	// 					printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
-	// 				}
-	// 				printf("\n");
-	// 			}
-	// 			printf("\n\n");
-	// 		}
-	// 	}
-	// 	printf("################\n");	
-	// }
-
-	// printf("**** SAGITTAL \n");
-
-	// // slice por slice sagittal view
-	// for (int k = offset; k < img1Info.resDepth-offset; ++k)
-	// {
-	// 	for (int i = offset; i < img1Info.resWidth-offset; ++i)
-	// 	{
-	// 		for (int j = offset; j < img1Info.resHeight-offset; ++j)
-	// 		{
-	// 			for(int ii=0; ii < pBase; ii++)
-	// 			{
-	// 				for(int jj=0; jj < pBase; jj++)
-	// 				{
-	// 					int pData2 = ijn(k-kernel+ii, i-kernel+jj ,img1Info.resWidth);
-	// 					subImg[ijn(ii, jj, pBase)] = data1[j][pData2];
-	// 					printf("%d ", (int)subImg[ijn(ii, jj, pBase)] ); 
-	// 				}
-	// 				printf("\n");
-	// 			}
-	// 			printf("\n\n");
-	// 		}
-	// 	}
-	// 	printf("################\n");	
-	// }
-
-
-	
 
 
 	return 0;
