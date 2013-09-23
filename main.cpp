@@ -11,14 +11,13 @@ using namespace cv;
 #define ijn(a,b,n) ((a)*(n))+b
 #define V false
 
-#define KERNEL 4
-#define PBASE KERNEL*2+1
+#define KERNEL 3
+#define PBASE  KERNEL*2+1
 #define OFFSET KERNEL
-
+#define PLANES 9
 
 void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type, Mat &t)
 {
-	//char *subVol= new char[PBASE*PBASE];
 	char *subVol = (char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
 	int iC1,jC1,jC2;
 	for(int i = 0; i < PBASE; i++)
@@ -102,23 +101,33 @@ int main(int argc, char **argv)
 	img1Info.initStack 	  = atoi(argv[4]);
 	img1Info.endStack     = atoi(argv[5]);
 	img1Info.resDepth     = img1Info.endStack - img1Info.initStack;
+	img1Info.viewOrientation = 'c';
 
 	printf("%s:[%dx%dx%d]\n", img1Info.inputFileName,img1Info.resWidth,img1Info.resHeight,img1Info.resDepth);
 	
 	Handle3DDataset <char>d1(img1Info);
 
 	d1.loadFile();
+	d1.changePlane();
 
-	char **data1 = d1.getDataset();
-	char *data2 = data1[KERNEL];
+	char **data1 = d1.getDataset(1);
+	char **data3 = d1.getDataset(0);
+	char *data2 = data3[10];
 
 	char *subImg = (char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
 	QualityAssessment qualAssess;
 	Scalar mpsnrV;
 
-	int count=0;
-	int count2=0;
-	int count3=0;
+	int count2,count3;
+	count2=count3=0;
+	int counts[PLANES][2];
+
+	for (int i = 0; i < PLANES; i++)
+	{
+		counts[i][0]=0;
+		counts[i][1]=0;
+	}
+
 	clock_t start = clock();
 	for (int iw = OFFSET; iw < img1Info.resDepth-OFFSET; iw++)
 	{
@@ -140,35 +149,13 @@ int main(int argc, char **argv)
 					for (int vh = OFFSET; vh < img1Info.resHeight-OFFSET; vh++) //a pixel //linha
 					{
 						//printf("[%d,%d]\n",d,ijn(w,h,IMG_W));
-						Mat t;
-
-						buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,0,t);
-            				mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-						if(mpsnrV.val[0] == 0) 	count++;
-						buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,1,t);
-						mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-						if(mpsnrV.val[0] == 0) 	count++;
-            			buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,2,t);
-						mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-						if(mpsnrV.val[0] == 0) 	count++;
-            			buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,3,t);
-						mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-						if(mpsnrV.val[0] == 0) 	count++;
-            			buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,4,t);
-						mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-						if(mpsnrV.val[0] == 0) 	count++;
-            			buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,5,t);
-						mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-						if(mpsnrV.val[0] == 0) 	count++;
-            			buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,6,t);
-						mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-						if(mpsnrV.val[0] == 0) 	count++;
-            			buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,7,t);
-						mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-						if(mpsnrV.val[0] == 0) 	count++;         
-						buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,8,t);
-						mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-						if(mpsnrV.val[0] == 0) 	count++;
+						for (int p = 0; p < PLANES; p++)
+						{
+							Mat t;
+							buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,p,t);
+	            			mpsnrV = qualAssess.getPSNR(sliceOrig,t);
+							if(mpsnrV.val[0] == 0){counts[p][0]++; counts[p][1]=vd-OFFSET+1;}
+						}
             			count3++;
 					}
 				}
@@ -177,9 +164,18 @@ int main(int argc, char **argv)
 		}
 		printf("%d\n",iw);
 	}
+	int summ=0;
+	for(int ix = 0; ix < PLANES; ix++)
+	{
+		summ = summ+counts[ix][0];
+	}	
 	//free (subImg);
 	start = clock() - start;
   	printf ("(%f seconds).\n",((float)start)/CLOCKS_PER_SEC);	
-	printf("%d,%d,%d\n",count2,count,count3 );
+  	for(int i = 0; i < PLANES; i++)
+  	{
+  		printf("%d=>%d,%d\n",i,counts[i][0],counts[i][1]);
+  	}
+	printf("%d,%d,%d\n",count2,summ,count3 );
 	return 0;		
 }
