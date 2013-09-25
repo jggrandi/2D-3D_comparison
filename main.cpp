@@ -18,8 +18,11 @@ using namespace cv;
 
 void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type, Mat &t)
 {
-	char *subVol = (char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
+	char *subVol=(char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
 	int iC1,jC1,jC2;
+	int dK = d-KERNEL;
+	int wK = w-KERNEL;
+	int hK = h-KERNEL;
 	for(int i = 0; i < PBASE; i++)
 	{
 		for(int j = 0; j < PBASE; j++)
@@ -27,49 +30,49 @@ void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type,
 			switch(diag_type)
 			{
 				case 0:
-					iC1 = d-KERNEL+1;
-					jC1 = w-KERNEL+i;
-					jC2 = h-KERNEL+j;
+					iC1 = dK+1;
+					jC1 = wK+i;
+					jC2 = hK+j;
 				break;
 				case 1:
-					iC1 = d-KERNEL+i;
-					jC1 = w-KERNEL+j;
-					jC2 = h-KERNEL+j;					
+					iC1 = dK+i;
+					jC1 = wK+j;
+					jC2 = hK+j;					
 				break;
 				case 2:
-					iC1 = d-KERNEL+i;
-					jC1 = w-KERNEL+j;
-					jC2 = h-KERNEL+(PBASE-j-1);				
+					iC1 = dK+i;
+					jC1 = wK+j;
+					jC2 = hK+(PBASE-j-1);				
 				break;
 				case 3:
-					iC1 = d-KERNEL+j;
-					jC1 = w-KERNEL+1;
-					jC2 = h-KERNEL+i;				
+					iC1 = dK+j;
+					jC1 = wK+1;
+					jC2 = hK+i;				
 				break;
 				case 4:
-					iC1 = d-KERNEL+i;
-					jC1 = w-KERNEL+j;
-					jC2 = h-KERNEL+i;				
+					iC1 = dK+i;
+					jC1 = wK+j;
+					jC2 = hK+i;				
 				break;
 				case 5:
-					iC1 = d-KERNEL+(PBASE-i-1);
-					jC1 = w-KERNEL+j;
-					jC2 = h-KERNEL+(PBASE-i-1);				
+					iC1 = dK+(PBASE-i-1);
+					jC1 = wK+j;
+					jC2 = hK+(PBASE-i-1);				
 				break;
 				case 6:
-					iC1 = d-KERNEL+j;
-					jC1 = w-KERNEL+i;
-					jC2 = h-KERNEL+1;				
+					iC1 = dK+j;
+					jC1 = wK+i;
+					jC2 = hK+1;				
 				break;
 				case 7:
-					iC1 = d-KERNEL+i;
-					jC1 = w-KERNEL+i;
-					jC2 = h-KERNEL+j;				
+					iC1 = dK+i;
+					jC1 = wK+i;
+					jC2 = hK+j;				
 				break;
 				case 8:
-					iC1 = d-KERNEL+(PBASE-i-1);
-					jC1 = w-KERNEL+(PBASE-i-1);
-					jC2 = h-KERNEL+j;				
+					iC1 = dK+(PBASE-i-1);
+					jC1 = wK+(PBASE-i-1);
+					jC2 = hK+j;				
 				break;			
 				default:
 				break;
@@ -80,45 +83,58 @@ void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type,
 
 	Mat slice(PBASE,PBASE,CV_8SC1,subVol);
 	t = slice.clone();
+	slice.release();
 	free(subVol);
 	subVol=0;	
 }
 
 int main(int argc, char **argv)
 {
-
 	DATAINFO img1Info;
-	DATAINFO img2Info;
 
-	if (argc != 7)
+	if (argc != 6)
 	{
 		printf("Falta argumentos");
 		return -1;
 	}
 
-	img1Info.inputFileName= argv[1];
-	img2Info.inputFileName= argv[2];
-
-	img1Info.resWidth=img2Info.resWidth= atoi(argv[3]);
-	img1Info.resHeight=img2Info.resHeight= atoi(argv[4]);
-	img1Info.initStack=img2Info.initStack= atoi(argv[5]);
-	img1Info.endStack=img2Info.endStack= atoi(argv[6]);
-	img1Info.resDepth=img2Info.resDepth= img1Info.endStack - img1Info.initStack;
-	//img1Info.viewOrientation = 's';
-
-	printf("%s,%s:[%dx%dx%d]\n", img1Info.inputFileName,img2Info.inputFileName,img1Info.resWidth,img1Info.resHeight,img1Info.resDepth);
+	img1Info.inputFileName   =      argv[1];
+	img1Info.resWidth 	     = atoi(argv[2]);
+	img1Info.resHeight       = atoi(argv[3]);
+	img1Info.initStack       = atoi(argv[4]);
+	img1Info.endStack	     = atoi(argv[5]);
+	img1Info.resDepth        = img1Info.endStack - img1Info.initStack;
 	
+	printf("%s:[%dx%dx%d]\n", img1Info.inputFileName,img1Info.resWidth,img1Info.resHeight,img1Info.resDepth);
+
 	Handle3DDataset <char>d1(img1Info);
-	Handle3DDataset <char>d2(img2Info);
 
 	if(!d1.loadFile()){ printf("Erro ao abrir: %s\n", img1Info.inputFileName ); return -1;}
-	if(!d2.loadFile()){ printf("Erro ao abrir: %s\n", img2Info.inputFileName ); return -1;}
 
 	char **data1 = d1.getDataset(0);
-	char **data3 = d2.getDataset(0);
-	//d1.changePlane();
-	//char **data3 = d1.getDataset(1);
-	char *data2 = data3[4];
+
+	char  *img = (char*)malloc(sizeof(char*)* img1Info.resWidth*img1Info.resHeight); //input slice
+
+	// for (int id = 0; id < img1Info.resDepth; id++)
+	// {
+		for (int iw = 0; iw < img1Info.resWidth; iw++)
+		{
+			for (int ih = 0; ih < img1Info.resHeight; ih++)
+			{
+				img[ijn(iw,ih,img1Info.resWidth)] = data1[ih][ijn(4,iw,img1Info.resWidth)];
+			}
+		}
+	// }
+	// FILE *outFile;	
+	// if(!(outFile = fopen("image.raw", "wb+")))
+	// 	return false;
+
+	// //save the new view plane into a new raw file
+	// 	fwrite(img, 1, sizeof(char)*img1Info.resWidth*img1Info.resHeight, outFile);
+
+	// fclose(outFile);
+
+
 
 	char *subImg = (char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
 	QualityAssessment qualAssess;
@@ -135,15 +151,16 @@ int main(int argc, char **argv)
 	}
 
 	clock_t start = clock();
-	for (int iw = OFFSET; iw < img1Info.resDepth-OFFSET; iw++)
+	for (int iw = OFFSET; iw < img1Info.resWidth-OFFSET; iw++)
 	{
-		for (int ih = OFFSET; ih < img1Info.resWidth-OFFSET; ih++) //percorre imagem pixel //coluna
+		printf("############ %d\n",iw);
+		for (int ih = OFFSET; ih < img1Info.resHeight-OFFSET; ih++) //percorre imagem pixel //coluna
 		{
 			for(int ii = 0; ii < PBASE; ii++)
 			{
 				for(int jj = 0; jj < PBASE; jj++)
 				{			
-					subImg[ijn(ii,jj,PBASE)] = data2[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,img1Info.resWidth)];
+					subImg[ijn(ii,jj,PBASE)] = img[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,img1Info.resWidth)];
 				}
 			}
 			Mat sliceOrig(PBASE,PBASE,CV_8SC1,subImg);
@@ -154,7 +171,6 @@ int main(int argc, char **argv)
 				{
 					for (int vh = OFFSET; vh < img1Info.resHeight-OFFSET; vh++) //a pixel //linha
 					{
-						//printf("[%d,%d]\n",d,ijn(w,h,IMG_W));
 						for (int p = 0; p < PLANES; p++)
 						{
 							Mat t;
@@ -164,11 +180,12 @@ int main(int argc, char **argv)
 							{
 								counts[p][0]++;
 								counts[p][1]=vd-OFFSET;
+								//std::cout << "SO = " << std::endl << " " << sliceOrig << std::endl << std::endl;							
+								
+								std::cout << "T = "<<p << " ["<<iw <<","<<ih<<"]"<< " ["<<vd <<","<<vw<<","<<vh<<"]" << std::endl << " " << t << std::endl << std::endl;							
+								
 							}
-							//std::cout << "SO = " << std::endl << " " << sliceOrig << std::endl << std::endl;							
-							std::cout << "T = "<<p << std::endl << " " << t << std::endl << std::endl;							
-							
-
+							//std::cout << "SO = "<<p << " ["<<vd <<","<<vw<<","<<vh<<"]"  << std::endl << " " << sliceOrig << std::endl << std::endl;							
 						}
             			count3++;
 					}
@@ -176,14 +193,13 @@ int main(int argc, char **argv)
 			}
 			count2++;
 		}
-		printf("%d\n",iw);
 	}
 	int summ=0;
 	for(int ix = 0; ix < PLANES; ix++)
 	{
 		summ = summ+counts[ix][0];
 	}	
-	//free (subImg);
+	free (subImg);
 	start = clock() - start;
   	printf ("(%f seconds).\n",((float)start)/CLOCKS_PER_SEC);	
   	for(int i = 0; i < PLANES; i++)
