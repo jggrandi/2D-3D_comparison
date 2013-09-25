@@ -39,7 +39,7 @@ void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type,
 				case 2:
 					iC1 = d-KERNEL+i;
 					jC1 = w-KERNEL+j;
-					jC2 = h-KERNEL-j-1;				
+					jC2 = h-KERNEL+(PBASE-j-1);				
 				break;
 				case 3:
 					iC1 = d-KERNEL+j;
