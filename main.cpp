@@ -1,6 +1,6 @@
 #include <cstdlib>
 #include <cstdio>
-
+#include <iostream>
 #include <handle3ddataset.h>
 #include <qualityassessment.h>
 #include <opencv2/core/core.hpp>  
@@ -11,7 +11,7 @@ using namespace cv;
 #define ijn(a,b,n) ((a)*(n))+b
 #define V false
 
-#define KERNEL 3
+#define KERNEL 1
 #define PBASE  KERNEL*2+1
 #define OFFSET KERNEL
 #define PLANES 9
@@ -88,31 +88,37 @@ int main(int argc, char **argv)
 {
 
 	DATAINFO img1Info;
+	DATAINFO img2Info;
 
-	if (argc != 6)
+	if (argc != 7)
 	{
 		printf("Falta argumentos");
 		return -1;
 	}
 
 	img1Info.inputFileName= argv[1];
-	img1Info.resWidth	  = atoi(argv[2]);
-	img1Info.resHeight 	  = atoi(argv[3]);
-	img1Info.initStack 	  = atoi(argv[4]);
-	img1Info.endStack     = atoi(argv[5]);
-	img1Info.resDepth     = img1Info.endStack - img1Info.initStack;
-	img1Info.viewOrientation = 'c';
+	img2Info.inputFileName= argv[2];
 
-	printf("%s:[%dx%dx%d]\n", img1Info.inputFileName,img1Info.resWidth,img1Info.resHeight,img1Info.resDepth);
+	img1Info.resWidth=img2Info.resWidth= atoi(argv[3]);
+	img1Info.resHeight=img2Info.resHeight= atoi(argv[4]);
+	img1Info.initStack=img2Info.initStack= atoi(argv[5]);
+	img1Info.endStack=img2Info.endStack= atoi(argv[6]);
+	img1Info.resDepth=img2Info.resDepth= img1Info.endStack - img1Info.initStack;
+	//img1Info.viewOrientation = 's';
+
+	printf("%s,%s:[%dx%dx%d]\n", img1Info.inputFileName,img2Info.inputFileName,img1Info.resWidth,img1Info.resHeight,img1Info.resDepth);
 	
 	Handle3DDataset <char>d1(img1Info);
+	Handle3DDataset <char>d2(img2Info);
 
-	d1.loadFile();
-	d1.changePlane();
+	if(!d1.loadFile()){ printf("Erro ao abrir: %s\n", img1Info.inputFileName ); return -1;}
+	if(!d2.loadFile()){ printf("Erro ao abrir: %s\n", img2Info.inputFileName ); return -1;}
 
-	char **data1 = d1.getDataset(1);
-	char **data3 = d1.getDataset(0);
-	char *data2 = data3[10];
+	char **data1 = d1.getDataset(0);
+	char **data3 = d2.getDataset(0);
+	//d1.changePlane();
+	//char **data3 = d1.getDataset(1);
+	char *data2 = data3[4];
 
 	char *subImg = (char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
 	QualityAssessment qualAssess;
@@ -133,9 +139,9 @@ int main(int argc, char **argv)
 	{
 		for (int ih = OFFSET; ih < img1Info.resWidth-OFFSET; ih++) //percorre imagem pixel //coluna
 		{
-			for(int ii=0; ii < PBASE; ii++)
+			for(int ii = 0; ii < PBASE; ii++)
 			{
-				for(int jj=0; jj < PBASE; jj++)
+				for(int jj = 0; jj < PBASE; jj++)
 				{			
 					subImg[ijn(ii,jj,PBASE)] = data2[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,img1Info.resWidth)];
 				}
@@ -154,7 +160,15 @@ int main(int argc, char **argv)
 							Mat t;
 							buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,p,t);
 	            			mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-							if(mpsnrV.val[0] == 0){counts[p][0]++; counts[p][1]=vd-OFFSET+1;}
+							if(mpsnrV.val[0] == 0)
+							{
+								counts[p][0]++;
+								counts[p][1]=vd-OFFSET;
+							}
+							//std::cout << "SO = " << std::endl << " " << sliceOrig << std::endl << std::endl;							
+							std::cout << "T = "<<p << std::endl << " " << t << std::endl << std::endl;							
+							
+
 						}
             			count3++;
 					}
