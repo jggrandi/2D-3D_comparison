@@ -11,7 +11,7 @@ using namespace cv;
 #define ijn(a,b,n) ((a)*(n))+b
 #define V false
 
-#define KERNEL 1
+#define KERNEL 2
 #define PBASE  KERNEL*2+1
 #define OFFSET KERNEL
 #define PLANES 9
@@ -112,29 +112,16 @@ int main(int argc, char **argv)
 	if(!d1.loadFile()){ printf("Erro ao abrir: %s\n", img1Info.inputFileName ); return -1;}
 
 	char **data1 = d1.getDataset(0);
+	char *data4 = d1.arbitraryPlane(10,'s');
 
-	char  *img = (char*)malloc(sizeof(char*)* img1Info.resWidth*img1Info.resHeight); //input slice
-
-	// for (int id = 0; id < img1Info.resDepth; id++)
-	// {
-		for (int iw = 0; iw < img1Info.resWidth; iw++)
-		{
-			for (int ih = 0; ih < img1Info.resHeight; ih++)
-			{
-				img[ijn(iw,ih,img1Info.resWidth)] = data1[ih][ijn(4,iw,img1Info.resWidth)];
-			}
-		}
-	// }
 	// FILE *outFile;	
 	// if(!(outFile = fopen("image.raw", "wb+")))
 	// 	return false;
 
 	// //save the new view plane into a new raw file
-	// 	fwrite(img, 1, sizeof(char)*img1Info.resWidth*img1Info.resHeight, outFile);
+	// 	fwrite(data4, 1, sizeof(char)*img1Info.resWidth*img1Info.resHeight, outFile);
 
 	// fclose(outFile);
-
-
 
 	char *subImg = (char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
 	QualityAssessment qualAssess;
@@ -160,7 +147,7 @@ int main(int argc, char **argv)
 			{
 				for(int jj = 0; jj < PBASE; jj++)
 				{			
-					subImg[ijn(ii,jj,PBASE)] = img[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,img1Info.resWidth)];
+					subImg[ijn(ii,jj,PBASE)] = data4[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,img1Info.resWidth)];
 				}
 			}
 			Mat sliceOrig(PBASE,PBASE,CV_8SC1,subImg);
@@ -182,7 +169,7 @@ int main(int argc, char **argv)
 								counts[p][1]=vd-OFFSET;
 								//std::cout << "SO = " << std::endl << " " << sliceOrig << std::endl << std::endl;							
 								
-								std::cout << "T = "<<p << " ["<<iw <<","<<ih<<"]"<< " ["<<vd <<","<<vw<<","<<vh<<"]" << std::endl << " " << t << std::endl << std::endl;							
+								//std::cout << "T = "<<p << " ["<<iw <<","<<ih<<"]"<< " ["<<vd <<","<<vw<<","<<vh<<"]" << std::endl << " " << t << std::endl << std::endl;							
 								
 							}
 							//std::cout << "SO = "<<p << " ["<<vd <<","<<vw<<","<<vh<<"]"  << std::endl << " " << sliceOrig << std::endl << std::endl;							
