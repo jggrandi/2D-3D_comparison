@@ -11,10 +11,18 @@ using namespace cv;
 #define ijn(a,b,n) ((a)*(n))+b
 #define V false
 
-#define KERNEL 2
+#define KERNEL 1
 #define PBASE  KERNEL*2+1
 #define OFFSET KERNEL
 #define PLANES 9
+
+typedef struct bestMatch
+{
+	double   bmSimValue;
+	char 	bmColorValue;
+	int     bmPlane;
+	Point3i bmCoord; 
+}BM;
 
 void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type, Mat &t)
 {
@@ -90,38 +98,48 @@ void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type,
 
 int main(int argc, char **argv)
 {
-	DATAINFO img1Info;
+	DATAINFO PP_RAW;
 
 	if (argc != 6)
 	{
-		printf("Falta argumentos");
+		printf("Not enough parameters.");
 		return -1;
 	}
 
-	img1Info.inputFileName   =      argv[1];
-	img1Info.resWidth 	     = atoi(argv[2]);
-	img1Info.resHeight       = atoi(argv[3]);
-	img1Info.initStack       = atoi(argv[4]);
-	img1Info.endStack	     = atoi(argv[5]);
-	img1Info.resDepth        = img1Info.endStack - img1Info.initStack;
+	PP_RAW.fileName = argv[1];
+	PP_RAW.resWidth = atoi(argv[2]);
+	PP_RAW.resHeight= atoi(argv[3]);
+	PP_RAW.initStack= atoi(argv[4]);
+	PP_RAW.endStack	= atoi(argv[5]);
+	PP_RAW.resDepth = PP_RAW.endStack - PP_RAW.initStack;
 	
-	printf("%s:[%dx%dx%d]\n", img1Info.inputFileName,img1Info.resWidth,img1Info.resHeight,img1Info.resDepth);
+	printf("%s:[%dx%dx%d]\n", PP_RAW.fileName,PP_RAW.resWidth,PP_RAW.resHeight,PP_RAW.resDepth);
 
-	Handle3DDataset <char>d1(img1Info);
+	Handle3DDataset <char>d1(PP_RAW);
 
-	if(!d1.loadFile()){ printf("Erro ao abrir: %s\n", img1Info.inputFileName ); return -1;}
+	if(!d1.loadFile()){ printf("Fail to open: %s\n", PP_RAW.fileName ); return -1;}
 
 	char **data1 = d1.getDataset(0);
-	char *data4 = d1.arbitraryPlane(10,'s');
+	char  *data4 = d1.arbitraryPlane(1,'a',0);
+	
 
-	// FILE *outFile;	
-	// if(!(outFile = fopen("image.raw", "wb+")))
-	// 	return false;
+	char **voxel = (char**)malloc(PP_RAW.resDepth * sizeof(char*));
+	for (int i=0; i < PP_RAW.resDepth; i++)
+		voxel[i] = (char*)malloc(sizeof(char) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
-	// //save the new view plane into a new raw file
-	// 	fwrite(data4, 1, sizeof(char)*img1Info.resWidth*img1Info.resHeight, outFile);
+	DATAINFO savePixels;
+	savePixels.fileName = "imagePlane.raw";
+	savePixels.resWidth = PP_RAW.resWidth;
+	savePixels.resHeight = PP_RAW.resHeight;
+	if(d1.saveModifiedImage(data4, savePixels)) printf("Image saved (%s)!\n", savePixels.fileName);
+	
+	BM bestNow;
+	bestNow.bmSimValue = 1000.0f;
+	BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
 
-	// fclose(outFile);
+	// BM **bestMatches = (BM**)malloc(PP_RAW.resDepth * sizeof(BM*));
+	// for (int i=0; i < PP_RAW.resDepth; i++)
+	// 	bestMatches[i] = (BM*)malloc(sizeof(BM) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 	char *subImg = (char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
 	QualityAssessment qualAssess;
@@ -137,43 +155,58 @@ int main(int argc, char **argv)
 		counts[i][1]=0;
 	}
 
+	printf("Finding the best match... \n");
 	clock_t start = clock();
-	for (int iw = OFFSET; iw < img1Info.resWidth-OFFSET; iw++)
+	for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw++)
 	{
-		printf("############ %d\n",iw);
-		for (int ih = OFFSET; ih < img1Info.resHeight-OFFSET; ih++) //percorre imagem pixel //coluna
+		printf(" %d\n",iw);
+		for (int ih = OFFSET; ih < PP_RAW.resHeight-OFFSET; ih++) //percorre imagem pixel //coluna
 		{
 			for(int ii = 0; ii < PBASE; ii++)
 			{
 				for(int jj = 0; jj < PBASE; jj++)
 				{			
-					subImg[ijn(ii,jj,PBASE)] = data4[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,img1Info.resWidth)];
+					subImg[ijn(ii,jj,PBASE)] = data4[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,PP_RAW.resWidth)];
 				}
 			}
 			Mat sliceOrig(PBASE,PBASE,CV_8SC1,subImg);
 		
-			for (int vd = OFFSET; vd < img1Info.resDepth-OFFSET; vd++)
+			for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd++)
 			{
-				for (int vw = OFFSET; vw < img1Info.resWidth-OFFSET; vw++) //percorre imagem pixel //coluna
+				for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw++) //percorre imagem pixel //coluna
 				{
-					for (int vh = OFFSET; vh < img1Info.resHeight-OFFSET; vh++) //a pixel //linha
+					for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh++) //a pixel //linha
 					{
 						for (int p = 0; p < PLANES; p++)
 						{
 							Mat t;
-							buidImagePlanes(vd,vw,vh,img1Info.resWidth,data1,p,t);
+							
+							buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
 	            			mpsnrV = qualAssess.getPSNR(sliceOrig,t);
-							if(mpsnrV.val[0] == 0)
+							// if(mpsnrV.val[0] < 1)
+							// {
+							// 	printf("[%dx%d]=%d,%f\t*****\n",iw,ih,p, mpsnrV.val[0] ); 							
+							// 	int a;
+							// 	scanf("%d",&a);
+							// }
+							// printf("[%dx%d]=%d,%f\n",iw,ih,p, mpsnrV.val[0] );
+	            			//printf("%d,%f\n",p,bestNow.bmSimValue );
+							if(mpsnrV.val[0] <= bestNow.bmSimValue)
 							{
+								if(mpsnrV.val[0]==0)
+									printf("TOUCHET\n" );
 								counts[p][0]++;
 								counts[p][1]=vd-OFFSET;
-								//std::cout << "SO = " << std::endl << " " << sliceOrig << std::endl << std::endl;							
-								
-								//std::cout << "T = "<<p << " ["<<iw <<","<<ih<<"]"<< " ["<<vd <<","<<vw<<","<<vh<<"]" << std::endl << " " << t << std::endl << std::endl;							
-								
+								bestNow.bmSimValue = mpsnrV.val[0];
+								bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
+								bestNow.bmPlane = p;
+								bestNow.bmCoord.x = vd;
+								bestNow.bmCoord.y = vw;
+								bestNow.bmCoord.z = vh;
 							}
-							//std::cout << "SO = "<<p << " ["<<vd <<","<<vw<<","<<vh<<"]"  << std::endl << " " << sliceOrig << std::endl << std::endl;							
 						}
+						bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
+						bestNow.bmSimValue = 1000.0f;
             			count3++;
 					}
 				}
@@ -181,6 +214,35 @@ int main(int argc, char **argv)
 			count2++;
 		}
 	}
+
+	int **simVolume = (int**)malloc(PP_RAW.resDepth * sizeof(int*));
+	for (int i=0; i < PP_RAW.resDepth; i++)
+		simVolume[i] = (int*)malloc(sizeof(int) * (PP_RAW.resWidth*PP_RAW.resHeight));
+
+	for (int d = OFFSET; d < PP_RAW.resDepth-OFFSET; d++)
+	{
+		for (int w = OFFSET; w < PP_RAW.resWidth-OFFSET; w++)
+		{
+			for (int h = OFFSET; h < PP_RAW.resHeight-OFFSET; h++)
+			{
+				simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (int)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue;
+				if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
+					printf("%d=>%f\t%d *********\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
+				else
+					printf("%d=>%f\t%d\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
+			}
+
+		}
+	}
+
+
+	DATAINFO saveVoxels;
+	saveVoxels.fileName = "volumePlane.raw";
+	saveVoxels.resWidth = PP_RAW.resWidth;
+	saveVoxels.resHeight = PP_RAW.resHeight;
+	saveVoxels.resDepth = PP_RAW.resDepth;
+	if(d1.saveModifiedDataset<int>(simVolume, saveVoxels)) printf("Volume saved (%s)!\n", saveVoxels.fileName);
+
 	int summ=0;
 	for(int ix = 0; ix < PLANES; ix++)
 	{
@@ -194,5 +256,7 @@ int main(int argc, char **argv)
   		printf("%d=>%d,%d\n",i,counts[i][0],counts[i][1]);
   	}
 	printf("%d,%d,%d\n",count2,summ,count3 );
+
+
 	return 0;		
 }
