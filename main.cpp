@@ -11,14 +11,14 @@ using namespace cv;
 #define ijn(a,b,n) ((a)*(n))+b
 #define V false
 
-#define KERNEL 1
+#define KERNEL 2
 #define PBASE  KERNEL*2+1
 #define OFFSET KERNEL
 #define PLANES 9
 
 typedef struct bestMatch
 {
-	double   bmSimValue;
+	char   bmSimValue;
 	char 	bmColorValue;
 	int     bmPlane;
 	Point3i bmCoord; 
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 	if(!d1.loadFile()){ printf("Fail to open: %s\n", PP_RAW.fileName ); return -1;}
 
 	char **data1 = d1.getDataset(0);
-	char  *data4 = d1.arbitraryPlane(1,'a',0);
+	char  *data4 = d1.arbitraryPlane(5,'a',0);
 	
 
 	char **voxel = (char**)malloc(PP_RAW.resDepth * sizeof(char*));
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 	if(d1.saveModifiedImage(data4, savePixels)) printf("Image saved (%s)!\n", savePixels.fileName);
 	
 	BM bestNow;
-	bestNow.bmSimValue = 1000.0f;
+	//bestNow.bmSimValue = 1000;
 	BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
 
 	// BM **bestMatches = (BM**)malloc(PP_RAW.resDepth * sizeof(BM*));
@@ -177,6 +177,8 @@ int main(int argc, char **argv)
 				{
 					for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh++) //a pixel //linha
 					{
+						float bN = 1000;
+						bool grava=false;
 						for (int p = 0; p < PLANES; p++)
 						{
 							Mat t;
@@ -191,22 +193,30 @@ int main(int argc, char **argv)
 							// }
 							// printf("[%dx%d]=%d,%f\n",iw,ih,p, mpsnrV.val[0] );
 	            			//printf("%d,%f\n",p,bestNow.bmSimValue );
-							if(mpsnrV.val[0] <= bestNow.bmSimValue)
+							if(mpsnrV.val[0] <= bN)
 							{
 								if(mpsnrV.val[0]==0)
-									printf("TOUCHET\n" );
-								counts[p][0]++;
-								counts[p][1]=vd-OFFSET;
-								bestNow.bmSimValue = mpsnrV.val[0];
+								{	
+									printf("AAA\n");
+									bestNow.bmSimValue = 255;
+									grava=true;
+								}
+								else
+									grava=false;
 								bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
 								bestNow.bmPlane = p;
 								bestNow.bmCoord.x = vd;
 								bestNow.bmCoord.y = vw;
 								bestNow.bmCoord.z = vh;
+								counts[p][0]++;
+								counts[p][1]=vd-OFFSET;
+								bN = mpsnrV.val[0];
+
 							}
 						}
-						bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
-						bestNow.bmSimValue = 1000.0f;
+						if(grava)
+							bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
+						bN = 1000;
             			count3++;
 					}
 				}
@@ -215,9 +225,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-	int **simVolume = (int**)malloc(PP_RAW.resDepth * sizeof(int*));
-	for (int i=0; i < PP_RAW.resDepth; i++)
-		simVolume[i] = (int*)malloc(sizeof(int) * (PP_RAW.resWidth*PP_RAW.resHeight));
+	char **simVolume = (char**)malloc(PP_RAW.resDepth * sizeof(char*));
+	for (char i=0; i < PP_RAW.resDepth; i++)
+		simVolume[i] = (char*)malloc(sizeof(char) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 	for (int d = OFFSET; d < PP_RAW.resDepth-OFFSET; d++)
 	{
@@ -225,11 +235,11 @@ int main(int argc, char **argv)
 		{
 			for (int h = OFFSET; h < PP_RAW.resHeight-OFFSET; h++)
 			{
-				simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (int)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue;
-				if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
-					printf("%d=>%f\t%d *********\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
-				else
-					printf("%d=>%f\t%d\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
+				simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (char)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue;
+				// if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
+				// 	printf("%d=>%f\t%d *********\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
+				// else
+				// 	printf("%d=>%f\t%d\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
 			}
 
 		}
@@ -241,7 +251,7 @@ int main(int argc, char **argv)
 	saveVoxels.resWidth = PP_RAW.resWidth;
 	saveVoxels.resHeight = PP_RAW.resHeight;
 	saveVoxels.resDepth = PP_RAW.resDepth;
-	if(d1.saveModifiedDataset<int>(simVolume, saveVoxels)) printf("Volume saved (%s)!\n", saveVoxels.fileName);
+	if(d1.saveModifiedDataset<char>(simVolume, saveVoxels)) printf("Volume saved (%s)!\n", saveVoxels.fileName);
 
 	int summ=0;
 	for(int ix = 0; ix < PLANES; ix++)
