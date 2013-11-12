@@ -4,7 +4,7 @@
 #include <handle3ddataset.h>
 #include <qualityassessment.h>
 #include <opencv2/core/core.hpp>  
-#include <ctime>
+#include <cputime.h>
 
 using namespace cv;
 
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 	if(!d1.loadFile()){ printf("Fail to open: %s\n", PP_RAW.fileName ); return -1;}
 
 	char **data1 = d1.getDataset(0);
-	char  *data4 = d1.arbitraryPlane(5,'a',0);
+	char  *data4 = d1.arbitraryPlane(4,'a',0);
 	
 
 	char **voxel = (char**)malloc(PP_RAW.resDepth * sizeof(char*));
@@ -156,7 +156,10 @@ int main(int argc, char **argv)
 	}
 
 	printf("Finding the best match... \n");
-	clock_t start = clock();
+	double startTime, endTime;
+
+	startTime = getCPUTime( );
+
 	for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw++)
 	{
 		printf(" %d\n",iw);
@@ -197,9 +200,10 @@ int main(int argc, char **argv)
 							{
 								if(mpsnrV.val[0]==0)
 								{	
-									printf("AAA\n");
 									bestNow.bmSimValue = 255;
 									grava=true;
+									counts[p][0]++;
+									counts[p][1]=vd-OFFSET;
 								}
 								else
 									grava=false;
@@ -208,8 +212,7 @@ int main(int argc, char **argv)
 								bestNow.bmCoord.x = vd;
 								bestNow.bmCoord.y = vw;
 								bestNow.bmCoord.z = vh;
-								counts[p][0]++;
-								counts[p][1]=vd-OFFSET;
+
 								bN = mpsnrV.val[0];
 
 							}
@@ -225,9 +228,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-	char **simVolume = (char**)malloc(PP_RAW.resDepth * sizeof(char*));
-	for (char i=0; i < PP_RAW.resDepth; i++)
-		simVolume[i] = (char*)malloc(sizeof(char) * (PP_RAW.resWidth*PP_RAW.resHeight));
+	char **simVolume = (char**)calloc(PP_RAW.resWidth, PP_RAW.resDepth * sizeof(char*));
+	for (int i=0; i < PP_RAW.resDepth; i++)
+		simVolume[i] = (char*)calloc(PP_RAW.resWidth , sizeof(char) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 	for (int d = OFFSET; d < PP_RAW.resDepth-OFFSET; d++)
 	{
@@ -259,8 +262,11 @@ int main(int argc, char **argv)
 		summ = summ+counts[ix][0];
 	}	
 	free (subImg);
-	start = clock() - start;
-  	printf ("(%f seconds).\n",((float)start)/CLOCKS_PER_SEC);	
+	
+	endTime = getCPUTime( );
+	fprintf( stderr, "CPU time used = %lf\n", (endTime - startTime) );
+
+
   	for(int i = 0; i < PLANES; i++)
   	{
   		printf("%d=>%d,%d\n",i,counts[i][0],counts[i][1]);
