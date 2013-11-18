@@ -11,7 +11,7 @@ using namespace cv;
 #define ijn(a,b,n) ((a)*(n))+b
 #define V false
 
-#define KERNEL 2
+#define KERNEL 1
 #define PBASE  KERNEL*2+1
 #define OFFSET KERNEL
 #define PLANES 9
@@ -24,7 +24,7 @@ typedef struct bestMatch
 	Point3i bmCoord; 
 }BM;
 
-void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type, Mat &t)
+void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type, char *&t)
 {
 	char *subVol=(char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
 	int iC1,jC1,jC2;
@@ -87,13 +87,14 @@ void buidImagePlanes(int d, int w, int h, int resW, char **data1, int diag_type,
 			}		
 			subVol[ijn(i,j,PBASE)] = data1[iC1][ijn(jC1,jC2,resW)];
 		}			
-	}		
-
-	Mat slice(PBASE,PBASE,CV_8SC1,subVol);
-	t = slice.clone();
-	slice.release();
+	}
+	t=subVol;		
+	//Mat slice(PBASE,PBASE,CV_8SC1,subVol);
+	//t = slice.clone();
+	//slice.release();
 	free(subVol);
 	subVol=0;	
+	//return subVol;
 }
 
 int main(int argc, char **argv)
@@ -145,6 +146,8 @@ int main(int argc, char **argv)
 	QualityAssessment qualAssess;
 	Scalar mpsnrV;
 
+	char *t = (char*)malloc(sizeof(char*)* PBASE*PBASE);//sub imagens
+
 	int count2,count3;
 	count2=count3=0;
 	int counts[PLANES][2];
@@ -172,7 +175,7 @@ int main(int argc, char **argv)
 					subImg[ijn(ii,jj,PBASE)] = data4[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,PP_RAW.resWidth)];
 				}
 			}
-			Mat sliceOrig(PBASE,PBASE,CV_8SC1,subImg);
+			//Mat sliceOrig(PBASE,PBASE,CV_8SC1,subImg);
 		
 			for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd++)
 			{
@@ -184,10 +187,11 @@ int main(int argc, char **argv)
 						bool grava=false;
 						for (int p = 0; p < PLANES; p++)
 						{
-							Mat t;
+							//Mat t;
 							
 							buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
-	            			mpsnrV = qualAssess.getPSNR(sliceOrig,t);
+	            			mpsnrV = qualAssess.getPSNR(subImg,t,PBASE,PBASE,PBASE);
+							printf("%f(%d,%d,%d)\n",mpsnrV.val[0],vd,vw,vh );
 							// if(mpsnrV.val[0] < 1)
 							// {
 							// 	printf("[%dx%d]=%d,%f\t*****\n",iw,ih,p, mpsnrV.val[0] ); 							
@@ -200,6 +204,7 @@ int main(int argc, char **argv)
 							{
 								if(mpsnrV.val[0]==0)
 								{	
+									printf("A\n");
 									bestNow.bmSimValue = 255;
 									grava=true;
 									counts[p][0]++;
