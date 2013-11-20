@@ -5,6 +5,7 @@ COPTIMIZATION = -O4
 WARNINGOFF = -w
 PROG = ../bin/2d_3d_comparison
 CTHREAD = -std=c++11 -pthread
+OPENMP = -fopenmp -lgomp
 
 SRC = main.cpp 
 OPENCV = `pkg-config opencv --libs --cflags`
@@ -20,7 +21,7 @@ L_QUALITYASSESSMENT = -L../../my_libs/QualityAssessment/bin
 
 
 $(PROG): $(SRC)
-	 $(CC) $(CFLAGS) $(CDEBUG) -o $(PROG) $(SRC) $(OPENCV) $(I_HANDLE3DDATASETS) $(I_QUALITYASSESSMENT) $(I_CPUTIME) $(L_HANDLE3DDATASETS) $(L_QUALITYASSESSMENT) $(L_CPUTIME)
+	 $(CC) $(CFLAGS) $(CDEBUG) $(OPENMP) -o $(PROG) $(SRC) $(OPENCV) $(I_HANDLE3DDATASETS) $(I_QUALITYASSESSMENT) $(I_CPUTIME) $(L_HANDLE3DDATASETS) $(L_QUALITYASSESSMENT) $(L_CPUTIME)
  
 clean:
 	rm -f $(PROG)
