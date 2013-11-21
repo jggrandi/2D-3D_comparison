@@ -27,7 +27,7 @@ typedef struct bestMatch
 
 void buidImagePlanes(int d, int w, int h, int resW, unsigned char **data1, int diag_type, unsigned char *&t)
 {
-	unsigned char *subVol=(unsigned char*)malloc(sizeof(unsigned char*)* PBASE*PBASE);//sub imagens
+	//unsigned char *subVol=(unsigned char*)malloc(sizeof(unsigned char*)* PBASE*PBASE);//sub imagens
 	int iC1,jC1,jC2;
 	int dK = d-KERNEL;
 	int wK = w-KERNEL;
@@ -86,7 +86,7 @@ void buidImagePlanes(int d, int w, int h, int resW, unsigned char **data1, int d
 				default:
 				break;
 			}		
-			subVol[ijn(i,j,PBASE)] = data1[iC1][ijn(jC1,jC2,resW)];
+			t[ijn(i,j,PBASE)] = data1[iC1][ijn(jC1,jC2,resW)];
 		}			
 	}
 
@@ -100,14 +100,15 @@ void buidImagePlanes(int d, int w, int h, int resW, unsigned char **data1, int d
 	// }
 	// printf("\n");
 	
-	memcpy ( &t, &subVol, sizeof(subVol) );
+	//memcpy ( &t, &subVol, sizeof(subVol) );
+	
 	//t=subVol;	
 
 	// Mat slice(PBASE,PBASE,CV_8SC1,subVol);
 	// t = slice.clone();
 	// slice.release();
-	// free(subVol);
-	// subVol=0;	
+	//free(subVol);
+	//subVol=0;	
 
 	// for(int i = 0; i < PBASE; i++)
 	// {
@@ -145,7 +146,7 @@ int main(int argc, char **argv)
 	if(!d1.loadFile()){ printf("Fail to open: %s\n", PP_RAW.fileName ); return -1;}
 
 	unsigned char **data1 = d1.getDataset(0);
-	unsigned char  *data4 = d1.arbitraryPlane(10,'a',0);
+	unsigned char  *data4 = d1.arbitraryPlane(10,'a',1);
 	
 
 	unsigned char **voxel = (unsigned char**)malloc(PP_RAW.resDepth * sizeof(unsigned char*));
@@ -213,13 +214,13 @@ int main(int argc, char **argv)
 
 			//Mat sliceOrig(PBASE,PBASE,CV_8SC1,subImg);
 			
-			#pragma omp parallel for
+			//#pragma omp parallel for
 
 			for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd++)
 			{
-				for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw+=4) //percorre imagem pixel //coluna
+				for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw++) //percorre imagem pixel //coluna
 				{
-					for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh+=4 /*vh+=4*/) //a pixel //linha
+					for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh++ /*vh+=4*/) //a pixel //linha
 					{
 						float bN = 1000;
 						bool grava=false;
