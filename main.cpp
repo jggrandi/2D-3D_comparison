@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 	if(!d1.loadFile()){ printf("Fail to open: %s\n", PP_RAW.fileName ); return -1;}
 
 	imgT **data1 = d1.getDataset(0);
-	imgT  *data4 = d1.arbitraryPlane(5,'a',1);
+	imgT  *data4 = d1.arbitraryPlane();
 	
 
 	imgT **voxel = (imgT**)malloc(PP_RAW.resDepth * sizeof(imgT*));
@@ -175,9 +175,9 @@ int main(int argc, char **argv)
 
 			for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd++)
 			{
-				for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw+=4) //percorre imagem pixel //coluna
+				for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw++) //percorre imagem pixel //coluna
 				{
-					for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh+=4 /*vh+=4*/) //a pixel //linha
+					for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh++ /*vh+=4*/) //a pixel //linha
 					{
 						float bN = 1000;
 						bool grava=false;

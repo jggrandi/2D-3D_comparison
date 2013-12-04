@@ -10,6 +10,9 @@ OPENMP = -fopenmp -lgomp
 SRC = main.cpp 
 OPENCV = `pkg-config opencv --libs --cflags`
 
+I_ARRAY = -I../../my_libs/Array
+L_ARRAY = -I../../my_libs/Array
+
 I_CPUTIME = -I../../my_libs/CPUTime/src
 L_CPUTIME = -I../../my_libs/CPUTime/bin
 
@@ -21,7 +24,7 @@ L_QUALITYASSESSMENT = -L../../my_libs/QualityAssessment/bin
 
 
 $(PROG): $(SRC)
-	 $(CC) $(CFLAGS) $(COPTIMIZATION) $(OPENMP) -o $(PROG) $(SRC) $(OPENCV) $(I_HANDLE3DDATASETS) $(I_QUALITYASSESSMENT) $(I_CPUTIME) $(L_HANDLE3DDATASETS) $(L_QUALITYASSESSMENT) $(L_CPUTIME)
+	 $(CC) $(CFLAGS) $(COPTIMIZATION) $(OPENMP) -o $(PROG) $(SRC) $(OPENCV) $(I_ARRAY) $(L_ARRAY) $(I_HANDLE3DDATASETS) $(I_QUALITYASSESSMENT) $(I_CPUTIME) $(L_HANDLE3DDATASETS) $(L_QUALITYASSESSMENT) $(L_CPUTIME)
  
 clean:
 	rm -f $(PROG)
