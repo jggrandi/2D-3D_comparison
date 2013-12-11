@@ -128,14 +128,15 @@ int main(int argc, char **argv)
 	savePixels.resWidth = PP_RAW.resWidth;
 	savePixels.resHeight = PP_RAW.resHeight;
 	if(d1.saveModifiedImage(data4, savePixels)) printf("Image saved (%s)!\n", savePixels.fileName);
-	
+
 	BM bestNow;
 	//bestNow.bmSimValue = 1000;
-	BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
 
-	// BM **bestMatches = (BM**)malloc(PP_RAW.resDepth * sizeof(BM*));
-	// for (int i=0; i < PP_RAW.resDepth; i++)
-	// 	bestMatches[i] = (BM*)malloc(sizeof(BM) * (PP_RAW.resWidth*PP_RAW.resHeight));
+	//BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
+
+	BM **bestMatches = (BM**)malloc(PP_RAW.resDepth * sizeof(BM*));
+	for (int i=0; i < PP_RAW.resDepth; i++)
+		bestMatches[i] = (BM*)malloc(sizeof(BM) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 	imgT *subImg = (imgT*)malloc(sizeof(imgT*)* PBASE*PBASE);//sub imagens
 	QualityAssessment qualAssess;
@@ -181,6 +182,7 @@ int main(int argc, char **argv)
 					{
 						float bN = 1000;
 						bool grava=false;
+						int sameVoxel = 0;
 						for (int p = 0; p < PLANES; p++)
 						{
 
@@ -196,6 +198,7 @@ int main(int argc, char **argv)
 									grava=true;
 									counts[p][0]++;
 									counts[p][1]=vd-OFFSET;
+									sameVoxel++;
 								}
 								else
 									grava=false;
@@ -209,7 +212,9 @@ int main(int argc, char **argv)
 
 							}	
 						}
-						if(grava)
+						// if(sameVoxel != 0)
+						// 	printf("%d\n", sameVoxel);
+						if((grava == true) && (sameVoxel == 1))
 							bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
 						bN = 1000;
             			count3++;
