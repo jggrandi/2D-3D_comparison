@@ -132,11 +132,11 @@ int main(int argc, char **argv)
 	BM bestNow;
 	//bestNow.bmSimValue = 1000;
 
-	//BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
+	BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
 
-	BM **bestMatches = (BM**)malloc(PP_RAW.resDepth * sizeof(BM*));
-	for (int i=0; i < PP_RAW.resDepth; i++)
-		bestMatches[i] = (BM*)malloc(sizeof(BM) * (PP_RAW.resWidth*PP_RAW.resHeight));
+	// BM **bestMatches = (BM**)malloc(PP_RAW.resDepth * sizeof(BM*));
+	// for (int i=0; i < PP_RAW.resDepth; i++)
+	// 	bestMatches[i] = (BM*)malloc(sizeof(BM) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 	imgT *subImg = (imgT*)malloc(sizeof(imgT*)* PBASE*PBASE);//sub imagens
 	QualityAssessment qualAssess;
@@ -156,6 +156,9 @@ int main(int argc, char **argv)
 
 	printf("Finding the best match... \n");
 	double startTime, endTime;
+
+   FILE * pFile;
+	pFile = fopen ("myfile.txt","w");
 
 	startTime = getCPUTime( );
 
@@ -199,23 +202,29 @@ int main(int argc, char **argv)
 									counts[p][0]++;
 									counts[p][1]=vd-OFFSET;
 									sameVoxel++;
+									bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
+									bestNow.bmPlane = p;
+									bestNow.bmCoord.x = vd;
+									bestNow.bmCoord.y = vw;
+									bestNow.bmCoord.z = vh;
+									
+									bN = mpsnrV.val[0];									
 								}
 								else
 									grava=false;
-								bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
-								bestNow.bmPlane = p;
-								bestNow.bmCoord.x = vd;
-								bestNow.bmCoord.y = vw;
-								bestNow.bmCoord.z = vh;
 
-								bN = mpsnrV.val[0];
 
 							}	
 						}
 						// if(sameVoxel != 0)
 						// 	printf("%d\n", sameVoxel);
 						if((grava == true) && (sameVoxel == 1))
+						{
+							
 							bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
+							printf("%d,%d,%d\n",bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z );
+							fprintf(pFile, "%d %d %d\n",bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x, bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y, bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z );							
+						}
 						bN = 1000;
             			count3++;
 					}
@@ -225,9 +234,12 @@ int main(int argc, char **argv)
 		}
 	}
 
-	imgT **simVolume = (imgT**)calloc(PP_RAW.resWidth, PP_RAW.resDepth * sizeof(imgT*));
+	fclose(pFile);
+	//imgT simVolume[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
+
+	imgT **simVolume = (imgT**)calloc(PP_RAW.resDepth, PP_RAW.resDepth * sizeof(imgT*));
 	for (int i=0; i < PP_RAW.resDepth; i++)
-		simVolume[i] = (imgT*)calloc(PP_RAW.resWidth , sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
+		simVolume[i] = (imgT*)calloc(PP_RAW.resWidth, sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 	for (int d = OFFSET; d < PP_RAW.resDepth-OFFSET; d++)
 	{
@@ -236,15 +248,33 @@ int main(int argc, char **argv)
 			for (int h = OFFSET; h < PP_RAW.resHeight-OFFSET; h++)
 			{
 				simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue;
-				// if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
-				// 	printf("%d=>%f\t%d *********\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
-				// else
+				//if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
+				//	printf("%d=>%f\t%d [%d,%d,%d]*********\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue, bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmCoord.x,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmCoord.y,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmCoord.z  );
+				//else
 				// 	printf("%d=>%f\t%d\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
 			}
 
 		}
 	}
 
+ //   FILE * pFile;
+	// pFile = fopen ("myfile.txt","w");
+
+	// for (int d = 0; d < PP_RAW.resDepth; d++)
+	// {
+	// 	for (int w = 0; w < PP_RAW.resWidth; w++)
+	// 	{
+	// 		for (int h = 0; h < PP_RAW.resHeight; h++)
+	// 		{
+	// 			if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
+	// 			{
+	// 				fprintf(pFile, "%d %d %d\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmCoord.x, bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmCoord.y, bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmCoord.z );
+	// 			}
+	// 		}
+
+	// 	}
+	// }
+	// fclose (pFile);
 
 	DATAINFO saveVoxels;
 	saveVoxels.fileName = (char *) malloc(100);
