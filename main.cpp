@@ -6,6 +6,7 @@
 #include <cputime.h>
 #include <omp.h>
 
+using namespace std;
 
 #define ijn(a,b,n) ((a)*(n))+b
 
@@ -23,7 +24,7 @@ typedef struct bestMatch
 }BM;
 
 //typedef unsigned short imgT;
-typedef unsigned char  imgT;
+typedef unsigned char imgT;
 
 void buidImagePlanes(int d, int w, int h, int resW, imgT **data1, int diag_type, imgT *&t)
 {
@@ -129,20 +130,19 @@ int main(int argc, char **argv)
 	savePixels.resHeight = PP_RAW.resHeight;
 	if(d1.saveModifiedImage(data4, savePixels)) printf("Image saved (%s)!\n", savePixels.fileName);
 
-	BM bestNow;
+	
 	//bestNow.bmSimValue = 1000;
 
 	//BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
 
-	BM **bestMatches = (BM**)malloc(PP_RAW.resDepth * sizeof(BM*));
+	BM **bestMatches = (BM**)calloc(PP_RAW.resDepth,PP_RAW.resDepth * sizeof(BM*));
 	for (int i=0; i < PP_RAW.resDepth; i++)
-		bestMatches[i] = (BM*)malloc(sizeof(BM) * (PP_RAW.resWidth*PP_RAW.resHeight));
+		bestMatches[i] = (BM*)calloc(PP_RAW.resWidth*PP_RAW.resHeight, sizeof(BM) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
-	imgT *subImg = (imgT*)malloc(sizeof(imgT*)* PBASE*PBASE);//sub imagens
-	QualityAssessment qualAssess;
-	Scalar mpsnrV;
+	imgT *subImg = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
 
-	imgT *t = (imgT*)malloc(sizeof(imgT*)* PBASE*PBASE);//sub imagens
+
+	
 
 	int count2,count3;
 	count2=count3=0;
@@ -159,65 +159,79 @@ int main(int argc, char **argv)
 
 	startTime = getCPUTime( );
 
+	int blackImage = 0;
+
 	for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw++)
 	{
 		printf(" %d\n",iw);
 		for (int ih = OFFSET; ih < PP_RAW.resHeight-OFFSET; ih++) //percorre imagem pixel //coluna
 		{
+			blackImage=0;
 			for(int ii = 0; ii < PBASE; ii++)
 			{
 				for(int jj = 0; jj < PBASE; jj++)
 				{			
 					subImg[ijn(ii,jj,PBASE)] = data4[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,PP_RAW.resWidth)];
+					if(subImg[ijn(ii,jj,PBASE)] <= 10)
+						blackImage++;
 				}
 			}
-						
-			//#pragma omp parallel for
-
-			for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd++)
+				
+			if(blackImage<PBASE*PBASE)		
 			{
-				for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw++) //percorre imagem pixel //coluna
+
+				#pragma omp parallel for 
+
+				for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd++)
 				{
-					for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh++ /*vh+=4*/) //a pixel //linha
+				QualityAssessment qualAssess;
+				Scalar mpsnrV;					
+				imgT *t = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
+				BM bestNow;
+					for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw++) //percorre imagem pixel //coluna
 					{
-						float bN = 1000;
-						bool grava=false;
-						int sameVoxel = 0;
-						for (int p = 0; p < PLANES; p++)
+						for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh++ /*vh+=4*/) //a pixel //linha
 						{
 
-							buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
-	            			mpsnrV = qualAssess.getPSNR<imgT>(subImg,t,PBASE,PBASE,PBASE);
-
-							if(mpsnrV.val[0] <= bN)
+							float bN = 1000;
+							bool grava=false;
+							int sameVoxel = 0;
+							for (int p = 0; p < PLANES; p++)
 							{
-								if(mpsnrV.val[0]==0)
-								{	
-									//printf("A\n");
-									bestNow.bmSimValue = 255;
-									grava=true;
-									counts[p][0]++;
-									counts[p][1]=vd-OFFSET;
-									sameVoxel++;
-								}
-								else
-									grava=false;
-								bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
-								bestNow.bmPlane = p;
-								bestNow.bmCoord.x = vd;
-								bestNow.bmCoord.y = vw;
-								bestNow.bmCoord.z = vh;
 
-								bN = mpsnrV.val[0];
+								buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
+		            			mpsnrV = qualAssess.getPSNR<imgT>(subImg,t,PBASE,PBASE,PBASE);
 
-							}	
+								if(mpsnrV.val[0] <= bN)
+								{
+									if(mpsnrV.val[0]==0)
+									{	
+										//printf("A\n");
+										bestNow.bmSimValue = 255;
+										grava=true;
+										counts[p][0]++;
+										counts[p][1]=vd-OFFSET;
+										sameVoxel++;
+									}
+									else
+										grava=false;
+									bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
+									bestNow.bmPlane = p;
+									bestNow.bmCoord.x = vd;
+									bestNow.bmCoord.y = vw;
+									bestNow.bmCoord.z = vh;
+
+									bN = mpsnrV.val[0];
+
+								}	
+							}
+							// if(sameVoxel != 0)
+							// 	printf("%d\n", sameVoxel);
+							if((grava == true) && (sameVoxel == 1))
+								bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
+							bN = 1000;
+	            			count3++;
 						}
-						// if(sameVoxel != 0)
-						// 	printf("%d\n", sameVoxel);
-						if((grava == true) && (sameVoxel == 1))
-							bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
-						bN = 1000;
-            			count3++;
 					}
 				}
 			}
@@ -228,6 +242,8 @@ int main(int argc, char **argv)
 	imgT **simVolume = (imgT**)calloc(PP_RAW.resWidth, PP_RAW.resDepth * sizeof(imgT*));
 	for (int i=0; i < PP_RAW.resDepth; i++)
 		simVolume[i] = (imgT*)calloc(PP_RAW.resWidth , sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
+
+	imgT *simImg = (imgT*)calloc(PP_RAW.resWidth , sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 	for (int d = OFFSET; d < PP_RAW.resDepth-OFFSET; d++)
 	{
