@@ -1,6 +1,6 @@
-#include <cstdlib>
-#include <cstdio>
-#include <iostream>
+//#include <cstdlib>
+//#include <cstdio>
+
 #include <handle3ddataset.h>
 #include <qualityassessment.h>  
 #include <cputime.h>
@@ -92,6 +92,7 @@ void buidImagePlanes(int d, int w, int h, int resW, imgT **data1, int diag_type,
 	}
 }
 
+
 int main(int argc, char **argv)
 {
 	DATAINFO PP_RAW;
@@ -142,7 +143,6 @@ int main(int argc, char **argv)
 
 	imgT *subImg = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
 
-
 	int count2,count3;
 	count2=count3=0;
 	int counts[PLANES][2];
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 		counts[i][0]=0;
 		counts[i][1]=0;
 	}
-
+	
 	printf("Finding the best match... \n");
 	//double startTime, endTime;
 	//startTime = getCPUTime( );
