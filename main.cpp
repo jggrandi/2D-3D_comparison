@@ -155,10 +155,12 @@ int main(int argc, char **argv)
 	}
 
 	printf("Finding the best match... \n");
-	double startTime, endTime;
+	//double startTime, endTime;
+	//startTime = getCPUTime( );
+	double t1,t2;
 
-	startTime = getCPUTime( );
-
+	t1=omp_get_wtime();
+	
 	int blackImage = 0;
 
 	for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw++)
@@ -184,10 +186,10 @@ int main(int argc, char **argv)
 
 				for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd++)
 				{
-				QualityAssessment qualAssess;
-				Scalar mpsnrV;					
-				imgT *t = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
-				BM bestNow;
+					QualityAssessment qualAssess;
+					Scalar mpsnrV;					
+					imgT *t = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
+					BM bestNow;
 					for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw++) //percorre imagem pixel //coluna
 					{
 						for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh++ /*vh+=4*/) //a pixel //linha
@@ -239,19 +241,25 @@ int main(int argc, char **argv)
 		}
 	}
 
+	//endTime = getCPUTime( );
+	//fprintf( stderr, "CPU time used = %lf\n", (endTime - startTime) );
+
+	t2=omp_get_wtime();
+	printf("Time with stack array: %12.3f sec, \n", t2-t1);
+
 	imgT **simVolume = (imgT**)calloc(PP_RAW.resWidth, PP_RAW.resDepth * sizeof(imgT*));
 	for (int i=0; i < PP_RAW.resDepth; i++)
 		simVolume[i] = (imgT*)calloc(PP_RAW.resWidth , sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 	imgT *simImg = (imgT*)calloc(PP_RAW.resWidth , sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
-	for (int d = OFFSET; d < PP_RAW.resDepth-OFFSET; d++)
+	for (int d = 0; d < PP_RAW.resDepth; d++)
 	{
-		for (int w = OFFSET; w < PP_RAW.resWidth-OFFSET; w++)
+		for (int w = 0; w < PP_RAW.resWidth; w++)
 		{
-			for (int h = OFFSET; h < PP_RAW.resHeight-OFFSET; h++)
+			for (int h = 0; h < PP_RAW.resHeight; h++)
 			{
-				simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue;
+				simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue;
 				// if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
 				// 	printf("%d=>%f\t%d *********\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
 				// else
@@ -277,10 +285,8 @@ int main(int argc, char **argv)
 	}	
 	free (subImg);
 	
-	endTime = getCPUTime( );
-	fprintf( stderr, "CPU time used = %lf\n", (endTime - startTime) );
 
-
+  	
   	for(int i = 0; i < PLANES; i++)
   	{
   		printf("%d=>%d,%d\n",i,counts[i][0],counts[i][1]);
