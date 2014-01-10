@@ -2,9 +2,9 @@
 //#include <cstdio>
 
 #include <handle3ddataset.h>
-#include <qualityassessment.h>  
-#include <cputime.h>
+#include <qualityassessment_noOpenCV.h>  
 #include <omp.h>
+#include <MutualInformation.h>
 
 using namespace std;
 
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 {
 	DATAINFO PP_RAW;
 
-	if (argc != 6)
+	if (argc < 6)
 	{
 		printf("Not enough parameters.");
 		return -1;
@@ -108,9 +108,15 @@ int main(int argc, char **argv)
 	PP_RAW.resHeight= atoi(argv[3]);
 	PP_RAW.initStack= atoi(argv[4]);
 	PP_RAW.endStack	= atoi(argv[5]);
+	if(argv[6]!=NULL)
+		PP_RAW.resampleFactor = atoi(argv[6]);
+	else
+		PP_RAW.resampleFactor = 1;
+
 	PP_RAW.resDepth = PP_RAW.endStack - PP_RAW.initStack;
 	
-	printf("%s:[%dx%dx%d]\n", PP_RAW.fileName,PP_RAW.resWidth,PP_RAW.resHeight,PP_RAW.resDepth);
+
+	printf("%s:[%dx%dx%d]:%d\n", PP_RAW.fileName,PP_RAW.resWidth,PP_RAW.resHeight,PP_RAW.resDepth,PP_RAW.resampleFactor);
 
 	Handle3DDataset <imgT>d1(PP_RAW);
 
@@ -158,7 +164,15 @@ int main(int argc, char **argv)
 	//startTime = getCPUTime( );
 	double t1,t2;
 
+	// double *x1, *x2;
+	// x1 = new double[5];
+	// x2 = new double[5];
+	// x1[0]=1;x1[1]=1;x1[2]=1;x1[3]=0;x1[4]=0;
+	// x2[0]=1;x2[1]=0;x2[2]=1;x2[3]=1;x2[4]=0;
+	// double xxx = calculateMutualInformation(x1, x2, PBASE*PBASE);
+	// printf("%f\n",xxx );
 
+	
 	t1=omp_get_wtime();
 	
 	int blackImage = 0;
@@ -193,9 +207,9 @@ int main(int argc, char **argv)
 					Scalar mpsnrV;					
 					imgT *t = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
 					BM bestNow;
-					for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw++) //percorre imagem pixel //coluna
+					for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw+=PP_RAW.resampleFactor) //percorre imagem pixel //coluna
 					{
-						for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh++ /*vh+=4*/) //a pixel //linha
+						for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh+=PP_RAW.resampleFactor /*vh+=4*/) //a pixel //linha
 						{
 
 							float bN = 1000;
