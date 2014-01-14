@@ -217,15 +217,16 @@ int main(int argc, char **argv)
 							int sameVoxel = 0;
 							for (int p = 0; p < PLANES; p++)
 							{
-
 								buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
 		            			mpsnrV = qualAssess.getPSNR<imgT>(subImg,t,PBASE,PBASE,PBASE);
 
+		            			//printf("%f\n", mpsnrV.val[0] );
 								if(mpsnrV.val[0] <= bN)
 								{
 									if(mpsnrV.val[0]==0)
 									{	
-										//printf("A\n");
+								//		printf("+++++++++++++++++++\n");
+								//		scanf("%d",&blackImage);
 										bestNow.bmSimValue = 255;
 										grava=true;
 										counts[p][0]++;
@@ -250,7 +251,11 @@ int main(int argc, char **argv)
 							if((grava == true) && (sameVoxel == 1))
 							{
 								bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
-								fprintf(pFile, "%d %d %d\n",bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x, bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y, bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z );							
+								float bX = ((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x / (float)PP_RAW.resWidth * 2.0f) - 1.0f;
+								float bY = ((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y / (float)PP_RAW.resHeight* 2.0f) - 1.0f;
+								float bZ = ((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z / (float)PP_RAW.resDepth * 2.0f) - 1.0f;								
+								printf("%f %f %f\n", bX, bY, bZ );
+								fprintf(pFile, "%f %f %f\n", bX, bY, bZ );
 							}
 							bN = 1000;
 	            			count3++;
