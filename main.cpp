@@ -4,7 +4,14 @@
 #include <handle3ddataset.h>
 #include <qualityassessment_noOpenCV.h>  
 #include <omp.h>
+#include <vector>
+#include <iqa.h>
 #include <MutualInformation.h>
+#include <Entropy.h>
+
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/linear_least_squares_fitting_3.h>
+
 
 using namespace std;
 
@@ -15,16 +22,41 @@ using namespace std;
 #define OFFSET KERNEL
 #define PLANES 9
 
+static const struct iqa_ssim_args ssim_args = {
+    0.39f,      /* alpha */
+    0.731f,     /* beta */
+    1.12f,      /* gamma */
+    187,        /* L */
+    0.025987f,  /* K1 */
+    0.0173f,    /* K2 */
+    1           /* factor */
+};
+
+typedef struct point3int
+{
+	int x;
+	int y;
+	int z;
+}P3i;
+
+
 typedef struct bestMatch
 {
 	char    bmSimValue;
 	char 	bmColorValue;
 	int     bmPlane;
-	Point3i bmCoord; 
+	P3i 	bmCoord; 
 }BM;
 
 //typedef unsigned short imgT;
 typedef unsigned char imgT;
+
+typedef double                      FT;
+typedef CGAL::Simple_cartesian<FT>  K;
+typedef K::Line_3                   Line;
+typedef K::Plane_3                  Plane;
+typedef K::Point_3                  Point;
+
 
 void buidImagePlanes(int d, int w, int h, int resW, imgT **data1, int diag_type, imgT *&t)
 {
@@ -147,6 +179,8 @@ int main(int argc, char **argv)
 	for (int i=0; i < PP_RAW.resDepth; i++)
 		bestMatches[i] = (BM*)calloc(PP_RAW.resWidth*PP_RAW.resHeight, sizeof(BM) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
+	vector<Point> bestCoords;
+
 	imgT *subImg = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
 
 	int count2,count3;
@@ -164,21 +198,20 @@ int main(int argc, char **argv)
 	//startTime = getCPUTime( );
 	double t1,t2;
 
-	// double *x1, *x2;
-	// x1 = new double[5];
-	// x2 = new double[5];
-	// x1[0]=1;x1[1]=1;x1[2]=1;x1[3]=0;x1[4]=0;
-	// x2[0]=1;x2[1]=0;x2[2]=1;x2[3]=1;x2[4]=0;
-	// double xxx = calculateMutualInformation(x1, x2, PBASE*PBASE);
-	// printf("%f\n",xxx );
+	double *x1, *x2;
+	x1 = new double[5];
+	x2 = new double[5];
+	x1[0]=1.0f;x1[1]=1.0f;x1[2]=1.0f;x1[3]=0;x1[4]=0;
+	x2[0]=1.0f;x2[1]=0;x2[2]=1.0f;x2[3]=1.0f;x2[4]=0;
+	double xxx = calculateMutualInformation(x1, x2, 5);
+	double yyy = calculateEntropy(x1,5);
+	printf("%f, %f\n",xxx,yyy );
 
 	
 	t1=omp_get_wtime();
 	
 	int blackImage = 0;
 
-   	FILE * pFile;
-	pFile = fopen ("myfile.txt","w");
 
 	for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw++)
 	{
@@ -201,10 +234,10 @@ int main(int argc, char **argv)
 
 				#pragma omp parallel for 
 
-				for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd++)
+				for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd+=PP_RAW.resampleFactor)
 				{
 					QualityAssessment qualAssess;
-					Scalar mpsnrV;					
+					float mpsnrV;					
 					imgT *t = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
 					BM bestNow;
 					for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw+=PP_RAW.resampleFactor) //percorre imagem pixel //coluna
@@ -219,12 +252,21 @@ int main(int argc, char **argv)
 							{
 								buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
 		            			mpsnrV = qualAssess.getPSNR<imgT>(subImg,t,PBASE,PBASE,PBASE);
-
-		            			//printf("%f\n", mpsnrV.val[0] );
-								if(mpsnrV.val[0] <= bN)
+		            		
+		            			//mpsnrV = qualAssess.getMSE<imgT>(subImg,t,PBASE,PBASE,PBASE);
+		            			//mpsnrV = iqa_ssim(t,subImg,PBASE,PBASE,PBASE,1,&ssim_args);
+		            			//mpsnrV = iqa_ms_ssim(t,subImg,PBASE,PBASE,PBASE,0);
+		            			//mpsnrV = iqa_psnr(subImg,t,PBASE,PBASE,PBASE);
+		            			//mpsnrV = iqa_mse(subImg,t,PBASE,PBASE,PBASE);
+		            			//mpsnrV = calculateMutualInformation(sb, st, PBASE*PBASE);
+		            			//float iqa_ssim(const unsigned char *ref, const unsigned char *cmp, int w, int h, int stride, int gaussian, const struct iqa_ssim_args *args);
+		            			// if(mpsnrV <= 3.0f)
+		            			// 	printf("%f\n", mpsnrV );
+								if(mpsnrV <= bN)
 								{
-									if(mpsnrV.val[0]==0)
+									if(mpsnrV<=0.0f)
 									{	
+										printf("%f\n", mpsnrV);
 								//		printf("+++++++++++++++++++\n");
 								//		scanf("%d",&blackImage);
 										bestNow.bmSimValue = 255;
@@ -232,30 +274,34 @@ int main(int argc, char **argv)
 										counts[p][0]++;
 										counts[p][1]=vd-OFFSET;
 										sameVoxel++;
+										bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
+										bestNow.bmPlane = p;
+										bestNow.bmCoord.x = vd;
+										bestNow.bmCoord.y = vw;
+										bestNow.bmCoord.z = vh;
 									}
 									else
 										grava=false;
 
-									bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
-									bestNow.bmPlane = p;
-									bestNow.bmCoord.x = vd;
-									bestNow.bmCoord.y = vw;
-									bestNow.bmCoord.z = vh;
 
-									bN = mpsnrV.val[0];
+
+									bN = mpsnrV;
 
 								}	
 							}
 							// if(sameVoxel != 0)
 							// 	printf("%d\n", sameVoxel);
+
+							// Aqui são salvos as posições dos voxels com maior similaridade. Antes as coordenadas são condicionadas de -1 a 1 para posterior visualização das informações
 							if((grava == true) && (sameVoxel == 1))
 							{
 								bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
-								float bX = ((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x / (float)PP_RAW.resWidth * 2.0f) - 1.0f;
-								float bY = ((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y / (float)PP_RAW.resHeight* 2.0f) - 1.0f;
-								float bZ = ((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z / (float)PP_RAW.resDepth * 2.0f) - 1.0f;								
-								printf("%f %f %f\n", bX, bY, bZ );
-								fprintf(pFile, "%f %f %f\n", bX, bY, bZ );
+								Point coord(((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x / (float)PP_RAW.resWidth * 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y / (float)PP_RAW.resHeight* 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z / (float)PP_RAW.resDepth * 2.0f) - 1.0f);
+								// Point coord(bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z);
+								bestCoords.push_back(coord);
+
+								//printf("%f %f %f\n", coord.x, coord.y, coord.z );
+			
 							}
 							bN = 1000;
 	            			count3++;
@@ -276,13 +322,12 @@ int main(int argc, char **argv)
 
 	imgT **simVolume = (imgT**)calloc(PP_RAW.resWidth, PP_RAW.resDepth * sizeof(imgT*));
 
-	fclose(pFile);
 	//imgT simVolume[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
 
 	for (int i=0; i < PP_RAW.resDepth; i++)
 		simVolume[i] = (imgT*)calloc(PP_RAW.resWidth, sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
-	imgT *simImg = (imgT*)calloc(PP_RAW.resWidth , sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
+	//imgT *simImg = (imgT*)calloc(PP_RAW.resWidth , sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 	for (int d = 0; d < PP_RAW.resDepth; d++)
 	{
@@ -333,9 +378,21 @@ int main(int argc, char **argv)
 		summ = summ+counts[ix][0];
 	}	
 	free (subImg);
-	
 
-  	
+	if(bestCoords.size() > 0)
+	{
+		Line line;
+		Plane plane;
+		// fit plane to whole points
+		linear_least_squares_fitting_3(bestCoords.begin(),bestCoords.end(),plane,CGAL::Dimension_tag<0>());
+
+		cout << plane <<endl;
+
+		// fit line to triangle vertices
+		linear_least_squares_fitting_3(bestCoords.begin(),bestCoords.end(),line, CGAL::Dimension_tag<0>());
+		cout << line << endl;	
+	}  	
+	
   	for(int i = 0; i < PLANES; i++)
   	{
   		printf("%d=>%d,%d\n",i,counts[i][0],counts[i][1]);
