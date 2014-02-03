@@ -23,6 +23,7 @@ using namespace std;
 #define PBASE  KERNEL*2+1
 #define OFFSET KERNEL
 #define PLANES 9
+#define PSWEEP 32
 
 static const struct iqa_ssim_args ssim_args = {
     0.39f,      /* alpha */
@@ -184,16 +185,17 @@ int main(int argc, char **argv)
 	printf("%s\n",ss );
 	ofs.open(ss);
 
-
-	for(int t=0; t<32; t++)
+	int planeSweep = (PP_RAW.resWidth)/PSWEEP;
+	int incInterp = 0;
+	for(int t=0; t<PP_RAW.resWidth; t+=planeSweep,incInterp++)
 	{
 		printf("%d\n",t );		
-		interp1 = interp1 /t;
+		interp1 = interp1 /incInterp;
 		//interp2 = interp2 /t;
 
 		imgT *data4 = (imgT*)calloc(PP_RAW.resWidth*PP_RAW.resHeight,sizeof(imgT*)* PP_RAW.resWidth*PP_RAW.resHeight);//sub imagens
 
-		d1.arbitraryPlane(data4,5,t,interp1,interp2,vec_normal,plane_d);
+		d1.arbitraryPlane(data4,PP_RAW.resWidth/2,t,interp1,interp2,vec_normal,plane_d);
 
 		// imgT **voxel = (imgT**)malloc(PP_RAW.resDepth * sizeof(imgT*));
 		// for (int i=0; i < PP_RAW.resDepth; i++)
@@ -249,13 +251,13 @@ int main(int argc, char **argv)
 		imgT *subImg = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
 		t1=omp_get_wtime();
 		
-
+		int planeDirection[9]={0,0,0,0,0,0,0,0};
 		
 		for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw++/*=PP_RAW.resampleFactor*/)
 		{
 			int blackImage = 0;
 
-		bool correctMatch = false;		
+			bool correctMatch = false;		
 			//printf(" %d\n",iw);
 			for (int ih = OFFSET; ih < PP_RAW.resHeight-OFFSET; ih++/*=PP_RAW.resampleFactor*/) //percorre imagem pixel //coluna
 			{
@@ -276,11 +278,13 @@ int main(int argc, char **argv)
 					if(blackImage<PBASE*PBASE)		
 					{
 
+
 						#pragma omp parallel for
 						 	
 
 						for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd+=PP_RAW.resampleFactorZ /*=PP_RAW.resampleFactor*/)
 						{
+							
 							bool allow = true;
 							QualityAssessment qualAssess;
 							float mpsnrV;					
@@ -330,6 +334,12 @@ int main(int argc, char **argv)
 													correctMatch++;
 													if(sameVoxel==1)
 														allow = false;
+													planeDirection[p]++;
+													// for (int xd=0; xd<9;xd++)
+													// {
+													// 	printf("[%d,%d,%d,%d,%d,%d,%d,%d,%d]\n",planeDirection[0],planeDirection[1],planeDirection[2],planeDirection[3],planeDirection[4],planeDirection[5],planeDirection[6],planeDirection[7],planeDirection[8] );
+													// }
+
 												}
 												else
 													grava=false;
@@ -339,18 +349,26 @@ int main(int argc, char **argv)
 
 											}	
 										}
-										//correctMatch =true;
-										// if(sameVoxel != 0)
-										// 	printf("%d\n", sameVoxel);
+										int greaterDirection = 0;
+
+										//sort o vetor para saber qual direção tem a maior similaridade
+										for(int ix=0; ix<8; ix++)
+											if(planeDirection[ix+1] > planeDirection[greaterDirection])
+												greaterDirection = ix+1;
+						
+
+										// printf("%d\n", greaterDirection);
 
 										// Aqui são salvos as posições dos voxels com maior similaridade. Antes as coordenadas são condicionadas de -1 a 1 para posterior visualização das informações
 										if((grava == true) && (sameVoxel == 1))
 										{
-											bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
-											Point coord(((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x / (float)PP_RAW.resWidth * 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y / (float)PP_RAW.resHeight* 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z / (float)PP_RAW.resDepth * 2.0f) - 1.0f);
-											// Point coord(bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z);
-											bestCoords.push_back(coord);
-
+											if(bestNow.bmPlane == greaterDirection )
+											{
+												bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
+												Point coord(((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x / (float)PP_RAW.resWidth * 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y / (float)PP_RAW.resHeight* 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z / (float)PP_RAW.resDepth * 2.0f) - 1.0f);
+												// Point coord(bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z);
+												bestCoords.push_back(coord);
+											}
 											//printf("%f %f %f\n", coord.x, coord.y, coord.z );
 						
 										}
@@ -365,9 +383,7 @@ int main(int argc, char **argv)
 				count2++;
 			}
 			correctMatch=0;
-		
-		
-	}
+		}
 		//endTime = getCPUTime( );
 		//fprintf( stderr, "CPU time used = %lf\n", (endTime - startTime) );
 		free (subImg);
@@ -383,6 +399,11 @@ int main(int argc, char **argv)
 			simVolume[i] = (imgT*)calloc(PP_RAW.resWidth, sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 		//imgT *simImg = (imgT*)calloc(PP_RAW.resWidth , sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
+
+
+		//excluir os pontos que não são do plano principal
+
+
 
 		for (int d = 0; d < PP_RAW.resDepth; d++)
 		{
@@ -400,24 +421,8 @@ int main(int argc, char **argv)
 			}
 		}
 
-	 //   FILE * pFile;
-		// pFile = fopen ("myfile.txt","w");
 
-		// for (int d = 0; d < PP_RAW.resDepth; d++)
-		// {
-		// 	for (int w = 0; w < PP_RAW.resWidth; w++)
-		// 	{
-		// 		for (int h = 0; h < PP_RAW.resHeight; h++)
-		// 		{
-		// 			if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
-		// 			{
-		// 				fprintf(pFile, "%d %d %d\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmCoord.x, bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmCoord.y, bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmCoord.z );
-		// 			}
-		// 		}
 
-		// 	}
-		// }
-		// fclose (pFile);
 
 		DATAINFO saveVoxels;
 		saveVoxels.fileName = (char *) malloc(100);
@@ -449,27 +454,27 @@ int main(int argc, char **argv)
 			//cout << line << endl;	
 		}  	
 	
-	vector3f myvec_normal(plane.c(),plane.b(),plane.a());
+		vector3f myvec_normal(plane.c(),plane.b(),plane.a());
 
 
-	float dot = dotProduct(vec_normal,myvec_normal);
+		float dot = dotProduct(vec_normal,myvec_normal);
 
-	dot = dot / (myvec_normal.length() *  vec_normal.length());
+		dot = dot / (myvec_normal.length() *  vec_normal.length());
 
-	float angle = acos(dot)*180/3.14159265359;
+		float angle = acos(dot)*180/3.14159265359;
 
 
-	printf("%f\n",plane_d - plane.d() );
-	printf("%f\n",angle );
-	ofs << plane_d - plane.d() <<" "<< angle <<" "<< t2-t1 << endl;
-	//ofs << vec_normal.z << " "<< vec_normal.y << " " << vec_normal.x << endl;
-	//ofs << t2-t1 <<endl <<endl;
+		printf("%f\n",plane_d - plane.d() );
+		printf("%f\n",angle );
+		ofs << plane_d - plane.d() <<" "<< angle <<" "<< t2-t1 << endl;
+		//ofs << vec_normal.z << " "<< vec_normal.y << " " << vec_normal.x << endl;
+		//ofs << t2-t1 <<endl <<endl;
 
-	 //  	for(int i = 0; i < PLANES; i++)
-	 //  	{
-	 //  		printf("%d=>%d,%d\n",i,counts[i][0],counts[i][1]);
-	 //  	}
-		// printf("%d,%d,%d\n",count2,summ,count3 );
+		 //  	for(int i = 0; i < PLANES; i++)
+		 //  	{
+		 //  		printf("%d=>%d,%d\n",i,counts[i][0],counts[i][1]);
+		 //  	}
+			// printf("%d,%d,%d\n",count2,summ,count3 );
 
 	}
 	ofs.close();
