@@ -131,9 +131,9 @@ int main(int argc, char **argv)
 {
 	DATAINFO PP_RAW;
 
-	if (argc < 6)
+	if (argc < 8)
 	{
-		printf("Not enough parameters.");
+		printf("Not enough parameters.\n");
 		return -1;
 	}
 
@@ -142,10 +142,10 @@ int main(int argc, char **argv)
 	PP_RAW.resHeight= atoi(argv[3]);
 	PP_RAW.initStack= atoi(argv[4]);
 	PP_RAW.endStack	= atoi(argv[5]);
-	if(argv[6]!=NULL)
-		PP_RAW.resampleFactor = atoi(argv[6]);
-	else
-		PP_RAW.resampleFactor = 1;
+	
+	PP_RAW.resampleFactor = atoi(argv[6]);
+	
+	PP_RAW.resampleFactorZ = atoi (argv[7]);
 
 	PP_RAW.resDepth = PP_RAW.endStack - PP_RAW.initStack;
 	
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 
 
 	stringstream output;
-	output << PP_RAW.fileName << "_" <<PP_RAW.resampleFactor << ".csv";
+	output << PP_RAW.fileName << "_" <<PP_RAW.resampleFactor << "_"<<PP_RAW.resampleFactorZ << ".csv";
 	string sulfix = output.str();
 	const char* ss = sulfix.c_str();
 
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
 						#pragma omp parallel for
 						 	
 
-						for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd++ /*=PP_RAW.resampleFactor*/)
+						for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd+=PP_RAW.resampleFactorZ /*=PP_RAW.resampleFactor*/)
 						{
 							bool allow = true;
 							QualityAssessment qualAssess;
@@ -442,7 +442,7 @@ int main(int argc, char **argv)
 			// fit plane to whole points
 			linear_least_squares_fitting_3(bestCoords.begin(),bestCoords.end(),plane,CGAL::Dimension_tag<0>());
 
-		//	cout << plane <<endl;
+			cout << plane <<endl;
 
 			// fit line to triangle vertices
 			//linear_least_squares_fitting_3(bestCoords.begin(),bestCoords.end(),line, CGAL::Dimension_tag<0>());
