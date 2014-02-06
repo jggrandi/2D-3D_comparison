@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 {
 	DATAINFO PP_RAW;
 
-	if (argc < 8)
+	if (argc < 9)
 	{
 		printf("Not enough parameters.\n");
 		return -1;
@@ -144,15 +144,13 @@ int main(int argc, char **argv)
 	PP_RAW.initStack= atoi(argv[4]);
 	PP_RAW.endStack	= atoi(argv[5]);
 	
-	PP_RAW.resampleFactor = atoi(argv[6]);
-	
-	PP_RAW.resampleFactorZ = atoi (argv[7]);
+	PP_RAW.resampleFactorImg = atoi(argv[6]);	
+	PP_RAW.resampleFactor 	 = atoi(argv[7]);	
+	PP_RAW.resampleFactorZ   = atoi(argv[8]);
 
 	PP_RAW.resDepth = PP_RAW.endStack - PP_RAW.initStack;
 	
-
-	//printf("%s:[%dx%dx%d]:%d\n", PP_RAW.fileName,PP_RAW.resWidth,PP_RAW.resHeight,PP_RAW.resDepth,PP_RAW.resampleFactor);
-
+	printf("%s:[%dx%dx%d]:Rimg[%d]:Rvol[%d,%d]\n", PP_RAW.fileName,PP_RAW.resWidth,PP_RAW.resHeight,PP_RAW.resDepth,PP_RAW.resampleFactorImg, PP_RAW.resampleFactor, PP_RAW.resampleFactorZ);
 
 	Handle3DDataset <imgT>d1(PP_RAW);
 	
@@ -166,30 +164,15 @@ int main(int argc, char **argv)
 
 	imgT **data1 = d1.getDataset(0);
 	ofstream ofs;
-	ofstream ofs2;
-	// char str[200];
-	// strcpy(str,PP_RAW.fileName);
-	// strcat(str,"_");
-	// strcat(str,PP_RAW.resampleFactor);
-	// strcat(str,".csv");
 
 
 	stringstream output;
-	output << PP_RAW.fileName << "_" <<PP_RAW.resampleFactor << "_"<<PP_RAW.resampleFactorZ << ".csv";
+	output << PP_RAW.fileName << "_" <<PP_RAW.resampleFactorImg << "_"<<PP_RAW.resampleFactor << "_"<<PP_RAW.resampleFactorZ << ".csv";
 	string sulfix = output.str();
 	const char* ss = sulfix.c_str();
 
-	stringstream output2;
-	output2 << PP_RAW.fileName << "_" <<PP_RAW.resampleFactor << "_"<<PP_RAW.resampleFactorZ << "planeEq.csv";
-	string sulfix2 = output2.str();
-	const char* ss2 = sulfix2.c_str();
-
-
-
-
-	printf("%s\n",ss );
+	//printf("%s\n",ss );
 	ofs.open(ss);
-	ofs2.open(ss2);
 
 	int planeSweep = (PP_RAW.resWidth)/PSWEEP;
 	int incInterp = 0;
@@ -259,13 +242,13 @@ int main(int argc, char **argv)
 		
 		int planeDirection[9]={0,0,0,0,0,0,0,0};
 		
-		for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw+=PP_RAW.resampleFactor)
+		for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw+=PP_RAW.resampleFactorImg)
 		{
 			int blackImage = 0;
 
 			bool correctMatch = false;		
 			//printf(" %d\n",iw);
-			for (int ih = OFFSET; ih < PP_RAW.resHeight-OFFSET; ih+=PP_RAW.resampleFactor) //percorre imagem pixel //coluna
+			for (int ih = OFFSET; ih < PP_RAW.resHeight-OFFSET; ih+=PP_RAW.resampleFactorImg) //percorre imagem pixel //coluna
 			{
 				//if(correctMatch==0)
 				//{	
@@ -428,8 +411,6 @@ int main(int argc, char **argv)
 		}
 
 
-
-
 		DATAINFO saveVoxels;
 		saveVoxels.fileName = (char *) malloc(100);
 		strcpy(saveVoxels.fileName,"volumePlane.raw");
@@ -453,29 +434,44 @@ int main(int argc, char **argv)
 			// fit plane to whole points
 			linear_least_squares_fitting_3(bestCoords.begin(),bestCoords.end(),plane,CGAL::Dimension_tag<0>());
 
-			cout << plane <<endl;
+			//cout << plane <<endl;
 
 			// fit line to triangle vertices
 			//linear_least_squares_fitting_3(bestCoords.begin(),bestCoords.end(),line, CGAL::Dimension_tag<0>());
 			//cout << line << endl;	
 		}  	
-	
-		vector3f myvec_normal(plane.c(),plane.b(),plane.a());
-
+		
+		//calcula angulo entre os planos	
+		vector3f myvec_normal(plane.a(),plane.b(),plane.c());
 
 		float dot = dotProduct(vec_normal,myvec_normal);
-
 		dot = dot / (myvec_normal.length() *  vec_normal.length());
-
 		float angle = acos(dot)*180/3.14159265359;
+		//
+
+		// distancia entre os vertices dos planos
+
+		float p1v0 = -(myvec_normal.z*1.0f  + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
+		float p1v1 = -(myvec_normal.z*1.0f  + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
+		float p1v2 = -(myvec_normal.z*-1.0f + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
+		float p1v3 = -(myvec_normal.z*-1.0f + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
 
 
-		printf("%f\n",plane_d - plane.d() );
+		float p2v0 = -(vec_normal.z*1.0f  + vec_normal.y*1.0f + plane_d )/(vec_normal.x);
+		float p2v1 = -(vec_normal.z*1.0f  + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
+		float p2v2 = -(vec_normal.z*-1.0f + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
+		float p2v3 = -(vec_normal.z*-1.0f + vec_normal.y*1.0f + plane_d)/(vec_normal.x);
+
+		float planeDistance = (p1v0 - p2v0) + (p1v1 - p2v1) + (p1v2 - p2v2) + (p1v3 - p2v3);
+
+		//média das quatro distancias
+		planeDistance = planeDistance / 4;
+
+		printf("%f\n",planeDistance );
 		printf("%f\n",angle );
-		ofs << plane_d - plane.d() <<" "<< angle <<" "<< t2-t1 << endl;
-		ofs2 << plane_d - plane.d() <<" "<< angle <<" "<< t2-t1 << "\t\t";
-		ofs2 << vec_normal.x <<" " <<vec_normal.y << " "<<vec_normal.z <<" "<< plane_d << "\t\t";
-		ofs2 << plane.c() <<" " << plane.b() << " "<<plane.a() <<" "<< plane.d() << endl;
+
+		ofs << planeDistance <<" "<< angle <<" "<< t2-t1 << endl;
+
 		//ofs << vec_normal.z << " "<< vec_normal.y << " " << vec_normal.x << endl;
 		//ofs << t2-t1 <<endl <<endl;
 
@@ -487,6 +483,5 @@ int main(int argc, char **argv)
 
 	}
 	ofs.close();
-	ofs2.close();
 	return 0;		
 }
