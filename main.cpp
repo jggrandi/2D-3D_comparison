@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 
 	imgT **data1 = d1.getDataset(0);
 	ofstream ofs;
-
+	ofstream ofs2;
 	// char str[200];
 	// strcpy(str,PP_RAW.fileName);
 	// strcat(str,"_");
@@ -179,11 +179,17 @@ int main(int argc, char **argv)
 	string sulfix = output.str();
 	const char* ss = sulfix.c_str();
 
+	stringstream output2;
+	output2 << PP_RAW.fileName << "_" <<PP_RAW.resampleFactor << "_"<<PP_RAW.resampleFactorZ << "planeEq.csv";
+	string sulfix2 = output2.str();
+	const char* ss2 = sulfix2.c_str();
+
 
 
 
 	printf("%s\n",ss );
 	ofs.open(ss);
+	ofs2.open(ss2);
 
 	int planeSweep = (PP_RAW.resWidth)/PSWEEP;
 	int incInterp = 0;
@@ -253,13 +259,13 @@ int main(int argc, char **argv)
 		
 		int planeDirection[9]={0,0,0,0,0,0,0,0};
 		
-		for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw++/*=PP_RAW.resampleFactor*/)
+		for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw+=PP_RAW.resampleFactor)
 		{
 			int blackImage = 0;
 
 			bool correctMatch = false;		
 			//printf(" %d\n",iw);
-			for (int ih = OFFSET; ih < PP_RAW.resHeight-OFFSET; ih++/*=PP_RAW.resampleFactor*/) //percorre imagem pixel //coluna
+			for (int ih = OFFSET; ih < PP_RAW.resHeight-OFFSET; ih+=PP_RAW.resampleFactor) //percorre imagem pixel //coluna
 			{
 				//if(correctMatch==0)
 				//{	
@@ -467,6 +473,9 @@ int main(int argc, char **argv)
 		printf("%f\n",plane_d - plane.d() );
 		printf("%f\n",angle );
 		ofs << plane_d - plane.d() <<" "<< angle <<" "<< t2-t1 << endl;
+		ofs2 << plane_d - plane.d() <<" "<< angle <<" "<< t2-t1 << "\t\t";
+		ofs2 << vec_normal.x <<" " <<vec_normal.y << " "<<vec_normal.z <<" "<< plane_d << "\t\t";
+		ofs2 << plane.c() <<" " << plane.b() << " "<<plane.a() <<" "<< plane.d() << endl;
 		//ofs << vec_normal.z << " "<< vec_normal.y << " " << vec_normal.x << endl;
 		//ofs << t2-t1 <<endl <<endl;
 
@@ -478,5 +487,6 @@ int main(int argc, char **argv)
 
 	}
 	ofs.close();
+	ofs2.close();
 	return 0;		
 }
