@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -Wall 
 CDEBUG = -g
-COPTIMIZATION = -O5
+COPTIMIZATION = -O3
 WARNINGOFF = -w
 PROG = ../bin/2d_3d_comparison
 CTHREAD = -std=c++11 -pthread
@@ -32,7 +32,7 @@ I_MI  = -I../../MI
 L_MI  = -L../../MI -Wl,-rpath=../../MI
 
 $(PROG): $(SRC)
-	 $(CC) $(CFLAGS) $(COPTIMIZATION)  --std=c++11   $(I_ARRAY) $(I_HANDLE3DDATASETS) $(I_QUALITYASSESSMENT) $(ICGAL) $(LCGAL) $(I_IQA) $(L_IQA)-o $(PROG) $(SRC)  $(OPENMP) -liqa
+	 $(CC) $(CFLAGS) $(COPTIMIZATION) --std=c++11   $(I_ARRAY) $(I_HANDLE3DDATASETS) $(I_QUALITYASSESSMENT)  $(I_IQA) $(L_IQA) $(ICGAL) $(LCGAL) -o $(PROG) $(SRC)  $(OPENMP) -liqa 
  
 clean:
 	rm -f $(PROG)

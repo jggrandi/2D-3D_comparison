@@ -1,6 +1,7 @@
-//#include <cstdlib>
-//#include <cstdio>
-
+// #include <cstdlib>
+// #include <cstdio>
+// #include <cstring>
+// #include <sstream>
 #include <handle3ddataset.h>
 #include <qualityassessment_noOpenCV.h>  
 #include <omp.h>
@@ -61,7 +62,7 @@ typedef K::Plane_3                  Plane;
 typedef K::Point_3                  Point;
 
 
-void buidImagePlanes(int d, int w, int h, int resW, imgT **data1, int diag_type, imgT *&t)
+void buidImagePlanes(int d, int w, int h, int resW, imgT **&data1, int diag_type, imgT *&t)
 {
 	int iC1,jC1,jC2;
 	iC1=jC1=jC2=0;
@@ -186,9 +187,6 @@ int main(int argc, char **argv)
 
 		d1.arbitraryPlane(data4,PP_RAW.resWidth/2,t,interp1,interp2,vec_normal,plane_d);
 
-		// imgT **voxel = (imgT**)malloc(PP_RAW.resDepth * sizeof(imgT*));
-		// for (int i=0; i < PP_RAW.resDepth; i++)
-		// 	voxel[i] = (imgT*)malloc(sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 		DATAINFO savePixels;
 		savePixels.fileName = (char *) malloc(100);
@@ -196,8 +194,8 @@ int main(int argc, char **argv)
 		savePixels.resWidth = PP_RAW.resWidth;
 		savePixels.resHeight = PP_RAW.resHeight;
 		/*if(*/d1.saveModifiedImage(data4, savePixels);//) printf("Image saved (%s)!\n", savePixels.fileName);
-
-		
+		free(savePixels.fileName);
+		savePixels.fileName=NULL;
 		//bestNow.bmSimValue = 1000;
 
 		//BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
@@ -355,7 +353,7 @@ int main(int argc, char **argv)
 											{
 												bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
 												Point coord(((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x / (float)PP_RAW.resWidth * 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y / (float)PP_RAW.resHeight* 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z / (float)PP_RAW.resDepth * 2.0f) - 1.0f);
-												// Point coord(bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z);
+												//Point coord(bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z);
 												bestCoords.push_back(coord);
 											}
 											//printf("%f %f %f\n", coord.x, coord.y, coord.z );
@@ -366,6 +364,8 @@ int main(int argc, char **argv)
 									}
 								}
 							}
+							free(t);
+							t=NULL;
 						}
 					}
 				//}
@@ -376,24 +376,17 @@ int main(int argc, char **argv)
 		//endTime = getCPUTime( );
 		//fprintf( stderr, "CPU time used = %lf\n", (endTime - startTime) );
 		free (subImg);
+		subImg=NULL;
 
 		t2=omp_get_wtime();
 		printf("Time with stack array: %12.3f sec, \n", t2-t1);
 
 		imgT **simVolume = (imgT**)calloc(PP_RAW.resWidth, PP_RAW.resDepth * sizeof(imgT*));
-
-		//imgT simVolume[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
-
 		for (int i=0; i < PP_RAW.resDepth; i++)
 			simVolume[i] = (imgT*)calloc(PP_RAW.resWidth, sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
-		//imgT *simImg = (imgT*)calloc(PP_RAW.resWidth , sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
-
 
 		//excluir os pontos que não são do plano principal
-
-
-
 		for (int d = 0; d < PP_RAW.resDepth; d++)
 		{
 			for (int w = 0; w < PP_RAW.resWidth; w++)
@@ -418,6 +411,8 @@ int main(int argc, char **argv)
 		saveVoxels.resHeight = PP_RAW.resHeight;
 		saveVoxels.resDepth = PP_RAW.resDepth;
 		/*if(*/d1.saveModifiedDataset<imgT>(simVolume, saveVoxels);/*) printf("Volume saved (%s)!\n", saveVoxels.fileName);*/
+		free(saveVoxels.fileName);
+		saveVoxels.fileName =NULL;
 
 		int summ=0;
 		for(int ix = 0; ix < PLANES; ix++)
@@ -480,6 +475,21 @@ int main(int argc, char **argv)
 		 //  		printf("%d=>%d,%d\n",i,counts[i][0],counts[i][1]);
 		 //  	}
 			// printf("%d,%d,%d\n",count2,summ,count3 );
+
+		for (int i=0; i < PP_RAW.resDepth; i++)
+		{
+			free(simVolume[i]); 
+			free(bestMatches[i]);
+		}
+		free(simVolume);
+		free(bestMatches);
+		
+		free(data4);
+
+		simVolume=NULL;
+		bestMatches=NULL;
+		data4=NULL;
+
 
 	}
 	ofs.close();
