@@ -446,21 +446,39 @@ int main(int argc, char **argv)
 
 		// distancia entre os vertices dos planos
 
-		float p1v0 = -(myvec_normal.z*1.0f  + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
-		float p1v1 = -(myvec_normal.z*1.0f  + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
-		float p1v2 = -(myvec_normal.z*-1.0f + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
-		float p1v3 = -(myvec_normal.z*-1.0f + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
+		float p0 = -(myvec_normal.z*1.0f  + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
+		vector3f pl0v0(1,1,p0);
+		float p1 = -(myvec_normal.z*1.0f  + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
+		vector3f pl0v1(1,1,p1);
+		float p2 = -(myvec_normal.z*-1.0f + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
+		vector3f pl0v2(1,1,p2);
+		float p3 = -(myvec_normal.z*-1.0f + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
+		vector3f pl0v3(1,1,p3);
 
 
-		float p2v0 = -(vec_normal.z*1.0f  + vec_normal.y*1.0f + plane_d )/(vec_normal.x);
-		float p2v1 = -(vec_normal.z*1.0f  + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
-		float p2v2 = -(vec_normal.z*-1.0f + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
-		float p2v3 = -(vec_normal.z*-1.0f + vec_normal.y*1.0f + plane_d)/(vec_normal.x);
+		p0 = -(vec_normal.z*1.0f  + vec_normal.y*1.0f + plane_d )/(vec_normal.x);
+		vector3f pl1v0(1,1,p0);
+		p1 = -(vec_normal.z*1.0f  + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
+		vector3f pl1v1(1,1,p1);
+		p2 = -(vec_normal.z*-1.0f + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
+		vector3f pl1v2(1,1,p2);
+		p3 = -(vec_normal.z*-1.0f + vec_normal.y*1.0f + plane_d)/(vec_normal.x);
+		vector3f pl1v3(1,1,p3);
 
-		float planeDistance = (p1v0 - p2v0) + (p1v1 - p2v1) + (p1v2 - p2v2) + (p1v3 - p2v3);
 
-		//média das quatro distancias
-		planeDistance = planeDistance / 4;
+		float v0_d =  sqrt(pow((pl0v0.x - pl1v0.x),2) + pow((pl0v0.y - pl1v0.y),2) + pow((pl0v0.z - pl1v0.z),2));
+		float v1_d =  sqrt(pow((pl0v1.x - pl1v1.x),2) + pow((pl0v1.y - pl1v1.y),2) + pow((pl0v1.z - pl1v1.z),2));
+		float v2_d =  sqrt(pow((pl0v2.x - pl1v2.x),2) + pow((pl0v2.y - pl1v2.y),2) + pow((pl0v2.z - pl1v2.z),2));		
+		float v3_d =  sqrt(pow((pl0v3.x - pl1v3.x),2) + pow((pl0v3.y - pl1v3.y),2) + pow((pl0v3.z - pl1v3.z),2));		
+
+		v0_d = abs(v0_d);
+		v1_d = abs(v1_d);
+		v2_d = abs(v2_d);
+		v3_d = abs(v3_d);
+
+
+		float planeDistance = ( pow(v0_d,2) + pow(v1_d,2) + pow(v2_d,2) + pow(v3_d,2) )/ 4;
+
 
 		printf("%f\n",planeDistance );
 		printf("%f\n",angle );
