@@ -436,12 +436,19 @@ int main(int argc, char **argv)
 			//cout << line << endl;	
 		}  	
 		
-		//calcula angulo entre os planos	
+		//calcula o primeiro angulo entre os planos	
 		vector3f myvec_normal(plane.a(),plane.b(),plane.c());
 
 		float dot = dotProduct(vec_normal,myvec_normal);
 		dot = dot / (myvec_normal.length() *  vec_normal.length());
-		float angle = acos(dot)*180/3.14159265359;
+		float angle1 = acos(dot)*180/3.14159265359;
+		//
+
+		//calcula o segundo angulo entre os planos
+		// vector3f planenormals = crossProduct(vec_normal,myvec_normal);
+		// dot = dotProduct(myvec_normal,planenormals);
+		// dot = dot / (myvec_normal.length() *  planenormals.length());
+		// float angle2 = acos(dot)*180/3.14159265359;
 		//
 
 		// distancia entre os vertices dos planos
@@ -477,13 +484,20 @@ int main(int argc, char **argv)
 		v3_d = abs(v3_d);
 
 
-		float planeDistance = ( pow(v0_d,2) + pow(v1_d,2) + pow(v2_d,2) + pow(v3_d,2) )/ 4;
+		float planeDistance1 = ( (pow(v0_d,2)*100) + (pow(v1_d,2)*100) + (pow(v2_d,2)*100) + (pow(v3_d,2)*100) )/ 4;
+		float planeDistance2 = ( v0_d + v1_d + v2_d + v3_d )/ 4;
 
+		printf("%f\n",planeDistance1 );
+		printf("%f\n",planeDistance2);
+		printf("%f\n",angle1 );
 
-		printf("%f\n",planeDistance );
-		printf("%f\n",angle );
+		ofs << planeDistance1 <<" "<< angle1 <<" "<< t2-t1 << "\t\t" << planeDistance2 <<" "<< angle1 <<" "<< t2-t1 <<"\t\t\t";
+ 		ofs << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d << "\t\t";
+		ofs << myvec_normal.x << " "<< myvec_normal.y << " " << myvec_normal.z <<" "<< plane.d() << "\t\t";
+		ofs << v0_d<< " "<< v1_d<< " "<< v2_d<< " " << v3_d <<endl;
 
-		ofs << planeDistance <<" "<< angle <<" "<< t2-t1 << endl;
+ 		cout << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d << endl;
+ 		cout << myvec_normal.x << " "<< myvec_normal.y << " " << myvec_normal.z <<" "<< plane.d() << endl;
 
 		//ofs << vec_normal.z << " "<< vec_normal.y << " " << vec_normal.x << endl;
 		//ofs << t2-t1 <<endl <<endl;
