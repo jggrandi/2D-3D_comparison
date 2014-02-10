@@ -21,10 +21,11 @@ using namespace std;
 #define ijn(a,b,n) ((a)*(n))+b
 
 #define KERNEL 1
-#define PBASE  KERNEL*2+1
+#define PBASE  (KERNEL*2+1)
 #define OFFSET KERNEL
 #define PLANES 9
 #define PSWEEP 32
+#define BLACKIMG 9
 
 static const struct iqa_ssim_args ssim_args = {
     0.39f,      /* alpha */
@@ -62,13 +63,15 @@ typedef K::Plane_3                  Plane;
 typedef K::Point_3                  Point;
 
 
-void buidImagePlanes(int d, int w, int h, int resW, imgT **&data1, int diag_type, imgT *&t)
+void buidImagePlanes(int d, int w, int h, int resW, imgT **&data1, int diag_type, imgT *&t, bool &flag)
 {
 	int iC1,jC1,jC2;
+	int blackSubImg=0;
 	iC1=jC1=jC2=0;
 	int dK = d-KERNEL;
 	int wK = w-KERNEL;
 	int hK = h-KERNEL;
+
 	for(int i = 0; i < PBASE; i++)
 	{
 		for(int j = 0; j < PBASE; j++)
@@ -122,10 +125,25 @@ void buidImagePlanes(int d, int w, int h, int resW, imgT **&data1, int diag_type
 				break;			
 				default:
 				break;
-			}		
-			t[ijn(i,j,PBASE)] = data1[iC1][ijn(jC1,jC2,resW)];
+			}				
+		
+			if(data1[iC1][ijn(jC1,jC2,resW)]<=20)
+			{
+				t[ijn(i,j,PBASE)] = data1[iC1][ijn(jC1,jC2,resW)];
+				blackSubImg++;
+			}
+			else
+				t[ijn(i,j,PBASE)] = data1[iC1][ijn(jC1,jC2,resW)];
 		}			
 	}
+	
+	if(blackSubImg == BLACKIMG)
+	{
+		flag = false;
+	}
+	else 
+		flag = true;
+	
 }
 
 
@@ -261,8 +279,9 @@ int main(int argc, char **argv)
 								blackImage++;
 						}
 					}
-						
-					if(blackImage<PBASE*PBASE)		
+					
+					//printf("%d\n",PBASE*PBASE );	
+					if(blackImage<=BLACKIMG)		
 					{
 
 
@@ -289,57 +308,60 @@ int main(int argc, char **argv)
 										int sameVoxel = 0;
 										for (int p = 0; p < PLANES; p++)
 										{
-											buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
-					            			mpsnrV = qualAssess.getPSNR<imgT>(subImg,t,PBASE,PBASE,PBASE);
-					            		
-					            			//mpsnrV = qualAssess.getMSE<imgT>(subImg,t,PBASE,PBASE,PBASE);
-					            			//mpsnrV = iqa_ssim(t,subImg,PBASE,PBASE,PBASE,1,&ssim_args);
-					            			//mpsnrV = iqa_ms_ssim(t,subImg,PBASE,PBASE,PBASE,0);
-					            			//mpsnrV = iqa_psnr(subImg,t,PBASE,PBASE,PBASE);
-					            			//mpsnrV = iqa_mse(subImg,t,PBASE,PBASE,PBASE);
-					            			//mpsnrV = calculateMutualInformation(sb, st, PBASE*PBASE);
-					            			//float iqa_ssim(const unsigned char *ref, const unsigned char *cmp, int w, int h, int stride, int gaussian, const struct iqa_ssim_args *args);
-					            			// if(mpsnrV <= 3.0f)
-					            			// 	printf("%f\n", mpsnrV );
-											if(mpsnrV <= bN)
+											bool flag = false;
+											buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t, flag); //passa pro ref o t
+											if(flag)
 											{
-												if(mpsnrV<=0.0f)
-												{	
-											//		printf("%f\n", mpsnrV);
-											//		printf("+++++++++++++++++++\n");
-											//		scanf("%d",&blackImage);
-													bestNow.bmSimValue = 255;
-													grava=true;
-													counts[p][0]++;
-													counts[p][1]=vd-OFFSET;
-													sameVoxel++;
-													bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
-													bestNow.bmPlane = p;
-													bestNow.bmCoord.x = vd;
-													bestNow.bmCoord.y = vw;
-													bestNow.bmCoord.z = vh;
-													correctMatch++;
-													if(sameVoxel==1)
-														allow = false;
-													planeDirection[p]++;
-													// for (int xd=0; xd<9;xd++)
-													// {
-													// 	printf("[%d,%d,%d,%d,%d,%d,%d,%d,%d]\n",planeDirection[0],planeDirection[1],planeDirection[2],planeDirection[3],planeDirection[4],planeDirection[5],planeDirection[6],planeDirection[7],planeDirection[8] );
-													// }
+						            			mpsnrV = qualAssess.getPSNR<imgT>(subImg,t,PBASE,PBASE,PBASE);
+						            		
+						            			//mpsnrV = qualAssess.getMSE<imgT>(subImg,t,PBASE,PBASE,PBASE);
+						            			//mpsnrV = iqa_ssim(t,subImg,PBASE,PBASE,PBASE,1,&ssim_args);
+						            			//mpsnrV = iqa_ms_ssim(t,subImg,PBASE,PBASE,PBASE,0);
+						            			//mpsnrV = iqa_psnr(subImg,t,PBASE,PBASE,PBASE);
+						            			//mpsnrV = iqa_mse(subImg,t,PBASE,PBASE,PBASE);
+						            			//mpsnrV = calculateMutualInformation(sb, st, PBASE*PBASE);
+						            			//float iqa_ssim(const unsigned char *ref, const unsigned char *cmp, int w, int h, int stride, int gaussian, const struct iqa_ssim_args *args);
+						            			// if(mpsnrV <= 3.0f)
+						            			// 	printf("%f\n", mpsnrV );
+												if(mpsnrV <= bN)
+												{
+													if(mpsnrV<=0.0f)
+													{	
+												//		printf("%f\n", mpsnrV);
+												//		printf("+++++++++++++++++++\n");
+												//		scanf("%d",&blackImage);
+														bestNow.bmSimValue = 255;
+														grava=true;
+														counts[p][0]++;
+														counts[p][1]=vd-OFFSET;
+														sameVoxel++;
+														bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
+														bestNow.bmPlane = p;
+														bestNow.bmCoord.x = vd;
+														bestNow.bmCoord.y = vw;
+														bestNow.bmCoord.z = vh;
+														correctMatch++;
+														if(sameVoxel==1)
+															allow = false;
+														planeDirection[p]++;
+														// for (int xd=0; xd<9;xd++)
+														// {
+														// 	printf("[%d,%d,%d,%d,%d,%d,%d,%d,%d]\n",planeDirection[0],planeDirection[1],planeDirection[2],planeDirection[3],planeDirection[4],planeDirection[5],planeDirection[6],planeDirection[7],planeDirection[8] );
+														// }
 
-												}
-												else
-													grava=false;
+													}
+													else
+														grava=false;
 
 
-												bN = mpsnrV;
-
-											}	
+													bN = mpsnrV;
+												}	
+											}
 										}
 										int greaterDirection = 0;
 
 										//sort o vetor para saber qual direção tem a maior similaridade
-										for(int ix=0; ix<8; ix++)
+										for(int ix=0; ix<PLANES-1; ix++)
 											if(planeDirection[ix+1] > planeDirection[greaterDirection])
 												greaterDirection = ix+1;
 						
