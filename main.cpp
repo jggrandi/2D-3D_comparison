@@ -485,7 +485,7 @@ int main(int argc, char **argv)
 
 
 		float planeDistance1 = ( (pow(v0_d,2)*100) + (pow(v1_d,2)*100) + (pow(v2_d,2)*100) + (pow(v3_d,2)*100) )/ 4;
-		float planeDistance2 = ( v0_d + v1_d + v2_d + v3_d )/ 4;
+		float planeDistance2 = (( v0_d + v1_d + v2_d + v3_d )/ 4)/2; // dividido por 4 pq é a media e dividido por 2 pq é normalizado
 
 		printf("%f\n",planeDistance1 );
 		printf("%f\n",planeDistance2);
