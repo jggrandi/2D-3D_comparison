@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 
 		imgT *data4 = (imgT*)calloc(PP_RAW.resWidth*PP_RAW.resHeight,sizeof(imgT*)* PP_RAW.resWidth*PP_RAW.resHeight);//sub imagens
 
-		d1.arbitraryPlane(data4,PP_RAW.resWidth/2,t,interp1,interp2,vec_normal,plane_d);
+		d1.arbitraryPlane(data4,0,t,interp1,interp2,vec_normal,plane_d);
 
 
 		DATAINFO savePixels;
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 		/*if(*/d1.saveModifiedImage(data4, savePixels);//) printf("Image saved (%s)!\n", savePixels.fileName);
 		free(savePixels.fileName);
 		savePixels.fileName=NULL;
-		//bestNow.bmSimValue = 1000;
+
 
 		//BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
 
@@ -240,6 +240,8 @@ int main(int argc, char **argv)
 		
 		int planeDirection[9]={0,0,0,0,0,0,0,0};
 		
+		int comparisonsCounter = 0;
+
 		for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw+=PP_RAW.resampleFactorImg)
 		{
 			int blackImage = 0;
@@ -262,7 +264,7 @@ int main(int argc, char **argv)
 						}
 					}
 						
-					if(blackImage<PBASE*PBASE)		
+					if(blackImage<(PBASE)*(PBASE))		
 					{
 
 
@@ -289,6 +291,7 @@ int main(int argc, char **argv)
 										int sameVoxel = 0;
 										for (int p = 0; p < PLANES; p++)
 										{
+											comparisonsCounter++;
 											buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
 					            			mpsnrV = qualAssess.getPSNR<imgT>(subImg,t,PBASE,PBASE,PBASE);
 					            		
@@ -319,14 +322,14 @@ int main(int argc, char **argv)
 													bestNow.bmCoord.y = vw;
 													bestNow.bmCoord.z = vh;
 													correctMatch++;
-													if(sameVoxel==1)
-														allow = false;
+													//if(sameVoxel==1)
+													//	allow = false;
 													planeDirection[p]++;
 													// for (int xd=0; xd<9;xd++)
 													// {
 													// 	printf("[%d,%d,%d,%d,%d,%d,%d,%d,%d]\n",planeDirection[0],planeDirection[1],planeDirection[2],planeDirection[3],planeDirection[4],planeDirection[5],planeDirection[6],planeDirection[7],planeDirection[8] );
 													// }
-
+													
 												}
 												else
 													grava=false;
@@ -386,6 +389,8 @@ int main(int argc, char **argv)
 			simVolume[i] = (imgT*)calloc(PP_RAW.resWidth, sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 
+		int simPoints=0;
+
 		//excluir os pontos que não são do plano principal
 		for (int d = 0; d < PP_RAW.resDepth; d++)
 		{
@@ -393,7 +398,9 @@ int main(int argc, char **argv)
 			{
 				for (int h = 0; h < PP_RAW.resHeight; h++)
 				{
-					simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue;
+					simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue;
+					if((imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 255)
+						simPoints++;						
 					// if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
 					// 	printf("%d=>%f\t%d *********\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
 					// else
@@ -454,8 +461,10 @@ int main(int argc, char **argv)
 
 
 		printf("ANGLE! %f\n",angle2 );
+		printf("SIM POInTS %d\n",simPoints );
+		// ofs << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d <<endl;
 
-		ofs << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d <<endl;
+		ofs << comparisonsCounter <<endl;
 
 		//calcula o segundo angulo entre os planos
 		// vector3f planenormals = crossProduct(vec_normal,myvec_normal);
