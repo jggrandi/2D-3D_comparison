@@ -140,6 +140,7 @@ int main(int argc, char **argv)
 	}
 
 	PP_RAW.fileName = argv[1];
+
 	PP_RAW.resWidth = atoi(argv[2]);
 	PP_RAW.resHeight= atoi(argv[3]);
 	PP_RAW.initStack= atoi(argv[4]);
@@ -148,6 +149,39 @@ int main(int argc, char **argv)
 	PP_RAW.resampleFactorImg = atoi(argv[6]);	
 	PP_RAW.resampleFactor 	 = atoi(argv[7]);	
 	PP_RAW.resampleFactorZ   = atoi(argv[8]);
+	char *imageName = argv[9];
+
+	bool externalImageLoaded = false;
+	imgT *imagePlane;
+	if(imageName != NULL)
+	{
+		FILE *inFile;
+		printf("AQUI\n");
+		if(!(inFile = fopen( imageName, "rb")))
+			return false;
+
+		// allocate memory for the 3d dataset
+	
+
+		// read file into dataset matrix
+		// int size = m_datasetInfo.resWidth*m_datasetInfo.resHeight*m_datasetInfo.resDepth;
+		// unsigned short *pVolume = new unsigned short[size];
+		// bool ok = (size == fread(pVolume,sizeof(unsigned short), size,pFile));
+
+		imagePlane = (imgT*)calloc(PP_RAW.resWidth*PP_RAW.resHeight,sizeof(imgT*)* PP_RAW.resWidth*PP_RAW.resHeight);//sub imagens
+	
+		for( int w = 0; w < PP_RAW.resWidth; w++ )
+			for( int h = 0; h < PP_RAW.resHeight; h++ )
+				{
+					imgT value;
+					fread( &value, 1, sizeof(imgT), inFile );
+					imagePlane[ijn(w,h,PP_RAW.resWidth)] = value;
+				}
+
+		fclose(inFile);
+		externalImageLoaded = true;
+	}
+
 
 	PP_RAW.resDepth = PP_RAW.endStack - PP_RAW.initStack;
 	
@@ -171,7 +205,7 @@ int main(int argc, char **argv)
 	output << PP_RAW.fileName << "_" <<PP_RAW.resampleFactorImg << "_"<<PP_RAW.resampleFactor << "_"<<PP_RAW.resampleFactorZ << ".csv";
 	string sulfix = output.str();
 	const char* ss = sulfix.c_str();
-
+	imgT *data4;
 	//printf("%s\n",ss );
 	ofs.open(ss);
 
@@ -182,22 +216,23 @@ int main(int argc, char **argv)
 		printf("%d\n",t );		
 		interp1 = interp1 /incInterp;
 		//interp2 = interp2 /t;
+		if(!externalImageLoaded)
+		{
+			data4 = (imgT*)calloc(PP_RAW.resWidth*PP_RAW.resHeight,sizeof(imgT*)* PP_RAW.resWidth*PP_RAW.resHeight);//sub imagens
 
-		imgT *data4 = (imgT*)calloc(PP_RAW.resWidth*PP_RAW.resHeight,sizeof(imgT*)* PP_RAW.resWidth*PP_RAW.resHeight);//sub imagens
-
-		d1.arbitraryPlane(data4,0,t,interp1,interp2,vec_normal,plane_d);
+			d1.arbitraryPlane(data4,0,t,interp1,interp2,vec_normal,plane_d);
 
 
-		DATAINFO savePixels;
-		savePixels.fileName = (char *) malloc(100);
-		strcpy(savePixels.fileName,"imagePlane.raw");
-		savePixels.resWidth = PP_RAW.resWidth;
-		savePixels.resHeight = PP_RAW.resHeight;
-		/*if(*/d1.saveModifiedImage(data4, savePixels);//) printf("Image saved (%s)!\n", savePixels.fileName);
-		free(savePixels.fileName);
-		savePixels.fileName=NULL;
+			DATAINFO savePixels;
+			savePixels.fileName = (char *) malloc(100);
+			strcpy(savePixels.fileName,"imagePlane.raw");
+			savePixels.resWidth = PP_RAW.resWidth;
+			savePixels.resHeight = PP_RAW.resHeight;
+			/*if(*/d1.saveModifiedImage(data4, savePixels);//) printf("Image saved (%s)!\n", savePixels.fileName);
+			free(savePixels.fileName);
+			savePixels.fileName=NULL;
 		//bestNow.bmSimValue = 1000;
-
+		}
 		//BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
 
 
@@ -255,8 +290,11 @@ int main(int argc, char **argv)
 					for(int ii = 0; ii < PBASE; ii++)
 					{
 						for(int jj = 0; jj < PBASE; jj++)
-						{			
-							subImg[ijn(ii,jj,PBASE)] = data4[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,PP_RAW.resWidth)];
+						{	
+							if(!externalImageLoaded)	
+								subImg[ijn(ii,jj,PBASE)] = data4[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,PP_RAW.resWidth)];
+							else
+								subImg[ijn(ii,jj,PBASE)] = imagePlane[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,PP_RAW.resWidth)];
 							if(subImg[ijn(ii,jj,PBASE)] <= 20)
 								blackImage++;
 						}
@@ -516,11 +554,14 @@ int main(int argc, char **argv)
 		free(simVolume);
 		free(bestMatches);
 		
-		free(data4);
-
+		if(!externalImageLoaded)
+			free(data4);
+		else
+			free(imagePlane);
 		simVolume=NULL;
 		bestMatches=NULL;
 		data4=NULL;
+		imagePlane=NULL;
 
 
 	}
