@@ -173,11 +173,11 @@ int main(int argc, char **argv)
 	const char* ss = sulfix.c_str();
 
 	//printf("%s\n",ss );
-	ofs.open("planeEquations.txt");
+	ofs.open(ss);
 
 	int planeSweep = (PP_RAW.resWidth)/PSWEEP;
 	int incInterp = 0;
-	for(int t=0; t<PP_RAW.resWidth; t+=planeSweep,incInterp++)
+	for(int t=0; t<PP_RAW.resWidth; t+=planeSweep,incInterp+=planeSweep)
 	{
 		printf("%d\n",t );		
 		interp1 = interp1 /incInterp;
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 		/*if(*/d1.saveModifiedImage(data4, savePixels);//) printf("Image saved (%s)!\n", savePixels.fileName);
 		free(savePixels.fileName);
 		savePixels.fileName=NULL;
-
+		//bestNow.bmSimValue = 1000;
 
 		//BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
 
@@ -240,8 +240,6 @@ int main(int argc, char **argv)
 		
 		int planeDirection[9]={0,0,0,0,0,0,0,0};
 		
-		int comparisonsCounter = 0;
-
 		for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw+=PP_RAW.resampleFactorImg)
 		{
 			int blackImage = 0;
@@ -264,7 +262,7 @@ int main(int argc, char **argv)
 						}
 					}
 						
-					if(blackImage<(PBASE)*(PBASE))		
+					if(blackImage<PBASE*PBASE)		
 					{
 
 
@@ -291,7 +289,6 @@ int main(int argc, char **argv)
 										int sameVoxel = 0;
 										for (int p = 0; p < PLANES; p++)
 										{
-											comparisonsCounter++;
 											buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
 					            			mpsnrV = qualAssess.getPSNR<imgT>(subImg,t,PBASE,PBASE,PBASE);
 					            		
@@ -322,14 +319,14 @@ int main(int argc, char **argv)
 													bestNow.bmCoord.y = vw;
 													bestNow.bmCoord.z = vh;
 													correctMatch++;
-													//if(sameVoxel==1)
-													//	allow = false;
+													if(sameVoxel==1)
+														allow = false;
 													planeDirection[p]++;
 													// for (int xd=0; xd<9;xd++)
 													// {
 													// 	printf("[%d,%d,%d,%d,%d,%d,%d,%d,%d]\n",planeDirection[0],planeDirection[1],planeDirection[2],planeDirection[3],planeDirection[4],planeDirection[5],planeDirection[6],planeDirection[7],planeDirection[8] );
 													// }
-													
+
 												}
 												else
 													grava=false;
@@ -389,8 +386,6 @@ int main(int argc, char **argv)
 			simVolume[i] = (imgT*)calloc(PP_RAW.resWidth, sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
 
 
-		int simPoints=0;
-
 		//excluir os pontos que não são do plano principal
 		for (int d = 0; d < PP_RAW.resDepth; d++)
 		{
@@ -398,9 +393,7 @@ int main(int argc, char **argv)
 			{
 				for (int h = 0; h < PP_RAW.resHeight; h++)
 				{
-					simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue;
-					if((imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 255)
-						simPoints++;						
+					simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue;
 					// if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
 					// 	printf("%d=>%f\t%d *********\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
 					// else
@@ -451,21 +444,6 @@ int main(int argc, char **argv)
 		float angle1 = acos(dot)*180/3.14159265359;
 		//
 
-		printf("->>>%f,%f,%f\n", vec_normal.x, vec_normal.y, vec_normal.z );
-
-		vector3f aux(1,0,0);
-
-		float dot2 = dotProduct(vec_normal,aux);
-		dot2 = dot2 / (aux.length() *  vec_normal.length());
-		float angle2 = acos(dot2)*180/3.14159265359;
-
-
-		printf("ANGLE! %f\n",angle2 );
-		printf("SIM POInTS %d\n",simPoints );
-		// ofs << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d <<endl;
-
-		ofs << comparisonsCounter <<endl;
-
 		//calcula o segundo angulo entre os planos
 		// vector3f planenormals = crossProduct(vec_normal,myvec_normal);
 		// dot = dotProduct(myvec_normal,planenormals);
@@ -475,51 +453,51 @@ int main(int argc, char **argv)
 
 		// distancia entre os vertices dos planos
 
-		// float p0 = -(myvec_normal.z*1.0f  + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
-		// vector3f pl0v0(1,1,p0);
-		// float p1 = -(myvec_normal.z*1.0f  + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
-		// vector3f pl0v1(1,1,p1);
-		// float p2 = -(myvec_normal.z*-1.0f + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
-		// vector3f pl0v2(1,1,p2);
-		// float p3 = -(myvec_normal.z*-1.0f + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
-		// vector3f pl0v3(1,1,p3);
+		float p0 = -(myvec_normal.z*1.0f  + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
+		vector3f pl0v0(1,1,p0);
+		float p1 = -(myvec_normal.z*1.0f  + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
+		vector3f pl0v1(1,1,p1);
+		float p2 = -(myvec_normal.z*-1.0f + myvec_normal.y*-1.0f + plane.d())/(myvec_normal.x);
+		vector3f pl0v2(1,1,p2);
+		float p3 = -(myvec_normal.z*-1.0f + myvec_normal.y*1.0f + plane.d())/(myvec_normal.x);
+		vector3f pl0v3(1,1,p3);
 
 
-		// p0 = -(vec_normal.z*1.0f  + vec_normal.y*1.0f + plane_d )/(vec_normal.x);
-		// vector3f pl1v0(1,1,p0);
-		// p1 = -(vec_normal.z*1.0f  + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
-		// vector3f pl1v1(1,1,p1);
-		// p2 = -(vec_normal.z*-1.0f + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
-		// vector3f pl1v2(1,1,p2);
-		// p3 = -(vec_normal.z*-1.0f + vec_normal.y*1.0f + plane_d)/(vec_normal.x);
-		// vector3f pl1v3(1,1,p3);
+		p0 = -(vec_normal.z*1.0f  + vec_normal.y*1.0f + plane_d )/(vec_normal.x);
+		vector3f pl1v0(1,1,p0);
+		p1 = -(vec_normal.z*1.0f  + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
+		vector3f pl1v1(1,1,p1);
+		p2 = -(vec_normal.z*-1.0f + vec_normal.y*-1.0f + plane_d)/(vec_normal.x);
+		vector3f pl1v2(1,1,p2);
+		p3 = -(vec_normal.z*-1.0f + vec_normal.y*1.0f + plane_d)/(vec_normal.x);
+		vector3f pl1v3(1,1,p3);
 
 
-		// float v0_d =  sqrt(pow((pl0v0.x - pl1v0.x),2) + pow((pl0v0.y - pl1v0.y),2) + pow((pl0v0.z - pl1v0.z),2));
-		// float v1_d =  sqrt(pow((pl0v1.x - pl1v1.x),2) + pow((pl0v1.y - pl1v1.y),2) + pow((pl0v1.z - pl1v1.z),2));
-		// float v2_d =  sqrt(pow((pl0v2.x - pl1v2.x),2) + pow((pl0v2.y - pl1v2.y),2) + pow((pl0v2.z - pl1v2.z),2));		
-		// float v3_d =  sqrt(pow((pl0v3.x - pl1v3.x),2) + pow((pl0v3.y - pl1v3.y),2) + pow((pl0v3.z - pl1v3.z),2));		
+		float v0_d =  sqrt(pow((pl0v0.x - pl1v0.x),2) + pow((pl0v0.y - pl1v0.y),2) + pow((pl0v0.z - pl1v0.z),2));
+		float v1_d =  sqrt(pow((pl0v1.x - pl1v1.x),2) + pow((pl0v1.y - pl1v1.y),2) + pow((pl0v1.z - pl1v1.z),2));
+		float v2_d =  sqrt(pow((pl0v2.x - pl1v2.x),2) + pow((pl0v2.y - pl1v2.y),2) + pow((pl0v2.z - pl1v2.z),2));		
+		float v3_d =  sqrt(pow((pl0v3.x - pl1v3.x),2) + pow((pl0v3.y - pl1v3.y),2) + pow((pl0v3.z - pl1v3.z),2));		
 
-		// v0_d = abs(v0_d);
-		// v1_d = abs(v1_d);
-		// v2_d = abs(v2_d);
-		// v3_d = abs(v3_d);
+		v0_d = abs(v0_d);
+		v1_d = abs(v1_d);
+		v2_d = abs(v2_d);
+		v3_d = abs(v3_d);
 
 
-		// float planeDistance1 = ( (pow(v0_d,2)*100) + (pow(v1_d,2)*100) + (pow(v2_d,2)*100) + (pow(v3_d,2)*100) )/ 4;
-		// float planeDistance2 = (( v0_d + v1_d + v2_d + v3_d )/ 4)/2; // dividido por 4 pq é a media e dividido por 2 pq é normalizado
+		float planeDistance1 = ( (pow(v0_d,2)*100) + (pow(v1_d,2)*100) + (pow(v2_d,2)*100) + (pow(v3_d,2)*100) )/ 4;
+		float planeDistance2 = (( v0_d + v1_d + v2_d + v3_d )/ 4)/2; // dividido por 4 pq é a media e dividido por 2 pq é normalizado
 
-		// printf("%f\n",planeDistance1 );
-		// printf("%f\n",planeDistance2);
-		// printf("%f\n",angle1 );
+		printf("%f\n",planeDistance1 );
+		printf("%f\n",planeDistance2);
+		printf("%f\n",angle1 );
 
-		// ofs << planeDistance1 <<" "<< angle1 <<" "<< t2-t1 << "\t\t" << planeDistance2 <<" "<< angle1 <<" "<< t2-t1 <<"\t\t\t";
- 	// 	ofs << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d << "\t\t";
-		// ofs << myvec_normal.x << " "<< myvec_normal.y << " " << myvec_normal.z <<" "<< plane.d() << "\t\t";
-		// ofs << v0_d<< " "<< v1_d<< " "<< v2_d<< " " << v3_d <<endl;
+		ofs << planeDistance1 <<" "<< angle1 <<" "<< t2-t1 << "\t\t" << planeDistance2 <<" "<< angle1 <<" "<< t2-t1 <<"\t\t\t";
+ 		ofs << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d << "\t\t";
+		ofs << myvec_normal.x << " "<< myvec_normal.y << " " << myvec_normal.z <<" "<< plane.d() << "\t\t";
+		ofs << v0_d<< " "<< v1_d<< " "<< v2_d<< " " << v3_d <<endl;
 
- 	// 	cout << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d << endl;
- 	// 	cout << myvec_normal.x << " "<< myvec_normal.y << " " << myvec_normal.z <<" "<< plane.d() << endl;
+ 		cout << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d << endl;
+ 		cout << myvec_normal.x << " "<< myvec_normal.y << " " << myvec_normal.z <<" "<< plane.d() << endl;
 
 		//ofs << vec_normal.z << " "<< vec_normal.y << " " << vec_normal.x << endl;
 		//ofs << t2-t1 <<endl <<endl;
