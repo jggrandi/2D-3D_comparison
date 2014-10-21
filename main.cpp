@@ -1,3 +1,6 @@
+// Versão dissertação
+
+
 // #include <cstdlib>
 // #include <cstdio>
 // #include <cstring>
