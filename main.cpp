@@ -62,7 +62,7 @@ typedef K::Plane_3                  Plane;
 typedef K::Point_3                  Point;
 
 
-void buidImagePlanes(int d, int w, int h, int resW, imgT **&data1, int diag_type, imgT *&t)
+void buidImagePlanes(int d, int w, int h, int resW, imgT **&raw_vol1, int diag_type, imgT *&t)
 {
 	int iC1,jC1,jC2;
 	iC1=jC1=jC2=0;
@@ -123,15 +123,17 @@ void buidImagePlanes(int d, int w, int h, int resW, imgT **&data1, int diag_type
 				default:
 				break;
 			}		
-			t[ijn(i,j,PBASE)] = data1[iC1][ijn(jC1,jC2,resW)];
+			t[ijn(i,j,PBASE)] = raw_vol1[iC1][ijn(jC1,jC2,resW)];
 		}			
 	}
 }
 
 
 int main(int argc, char **argv)
-{
-	DATAINFO PP_RAW;
+{	
+
+	DATAINFO INFO_VOL1;
+	DATAINFO INFO_VOL2;
 
 	if (argc < 9)
 	{
@@ -139,57 +141,35 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	PP_RAW.fileName = argv[1];
-
-	PP_RAW.resWidth = atoi(argv[2]);
-	PP_RAW.resHeight= atoi(argv[3]);
-	PP_RAW.initStack= atoi(argv[4]);
-	PP_RAW.endStack	= atoi(argv[5]);
+	INFO_VOL1.fileName = argv[1];
+	INFO_VOL1.resWidth = atoi(argv[2]);
+	INFO_VOL1.resHeight= atoi(argv[3]);
+	INFO_VOL1.initStack= atoi(argv[4]);
+	INFO_VOL1.endStack	= atoi(argv[5]);
+	INFO_VOL1.resampleFactorImg = atoi(argv[6]);	
+	INFO_VOL1.resampleFactor 	 = atoi(argv[7]);	
+	INFO_VOL1.resampleFactorZ   = atoi(argv[8]);
 	
-	PP_RAW.resampleFactorImg = atoi(argv[6]);	
-	PP_RAW.resampleFactor 	 = atoi(argv[7]);	
-	PP_RAW.resampleFactorZ   = atoi(argv[8]);
-	char *imageName = argv[9];
-
-	bool externalImageLoaded = false;
-	imgT *imagePlane;
-	if(imageName != NULL)
-	{
-		FILE *inFile;
-		printf("AQUI\n");
-		if(!(inFile = fopen( imageName, "rb")))
-			return false;
-
-		// allocate memory for the 3d dataset
+	INFO_VOL2.fileName = argv[9];
+	INFO_VOL2.resWidth = atoi(argv[2]);
+	INFO_VOL2.resHeight= atoi(argv[3]);
+	INFO_VOL2.initStack= atoi(argv[4]);
+	INFO_VOL2.endStack = atoi(argv[5]);
+	INFO_VOL2.resampleFactorImg = atoi(argv[6]);	
+	INFO_VOL2.resampleFactor    = atoi(argv[7]);	
+	INFO_VOL2.resampleFactorZ   = atoi(argv[8]);
 	
 
-		// read file into dataset matrix
-		// int size = m_datasetInfo.resWidth*m_datasetInfo.resHeight*m_datasetInfo.resDepth;
-		// unsigned short *pVolume = new unsigned short[size];
-		// bool ok = (size == fread(pVolume,sizeof(unsigned short), size,pFile));
-
-		imagePlane = (imgT*)calloc(PP_RAW.resWidth*PP_RAW.resHeight,sizeof(imgT*)* PP_RAW.resWidth*PP_RAW.resHeight);//sub imagens
+	INFO_VOL1.resDepth = INFO_VOL1.endStack - INFO_VOL1.initStack;
+	INFO_VOL2.resDepth = INFO_VOL2.endStack - INFO_VOL2.initStack;
 	
-		for( int w = 0; w < PP_RAW.resWidth; w++ )
-			for( int h = 0; h < PP_RAW.resHeight; h++ )
-				{
-					imgT value;
-					fread( &value, 1, sizeof(imgT), inFile );
-					imagePlane[ijn(w,h,PP_RAW.resWidth)] = value;
-				}
+	printf("%s:[%dx%dx%d]:Rimg[%d]:Rvol[%d,%d]\n", INFO_VOL1.fileName,INFO_VOL1.resWidth,INFO_VOL1.resHeight,INFO_VOL1.resDepth,INFO_VOL1.resampleFactorImg, INFO_VOL1.resampleFactor, INFO_VOL1.resampleFactorZ);
 
-		fclose(inFile);
-		externalImageLoaded = true;
-	}
-
-
-	PP_RAW.resDepth = PP_RAW.endStack - PP_RAW.initStack;
+	Handle3DDataset <imgT>data_vol1(INFO_VOL1);
+	Handle3DDataset <imgT>data_vol2(INFO_VOL2);
 	
-	printf("%s:[%dx%dx%d]:Rimg[%d]:Rvol[%d,%d]\n", PP_RAW.fileName,PP_RAW.resWidth,PP_RAW.resHeight,PP_RAW.resDepth,PP_RAW.resampleFactorImg, PP_RAW.resampleFactor, PP_RAW.resampleFactorZ);
-
-	Handle3DDataset <imgT>d1(PP_RAW);
-	
-	if(!d1.loadFile()){ printf("Fail to open: %s\n", PP_RAW.fileName ); return -1;}
+	if(!data_vol1.loadFile()){ printf("Fail to open: %s\n", INFO_VOL1.fileName ); return -1;}
+	if(!data_vol2.loadFile()){ printf("Fail to open: %s\n", INFO_VOL2.fileName ); return -1;}
 
 	vector3f vec_normal;
 	float plane_d;
@@ -197,43 +177,42 @@ int main(int argc, char **argv)
 	float interp1= 30000;
 	float interp2= 30000;
 
-	imgT **data1 = d1.getDataset(0);
+	imgT **raw_vol1 = data_vol1.getDataset(0);
+	imgT **raw_vol2 = data_vol2.getDataset(0);
+
 	ofstream ofs;
-
-
 	stringstream output;
-	output << PP_RAW.fileName << "_" <<PP_RAW.resampleFactorImg << "_"<<PP_RAW.resampleFactor << "_"<<PP_RAW.resampleFactorZ << ".csv";
+	output << INFO_VOL1.fileName << "_" <<INFO_VOL1.resampleFactorImg << "_"<<INFO_VOL1.resampleFactor << "_"<<INFO_VOL1.resampleFactorZ << ".csv";
 	string sulfix = output.str();
 	const char* ss = sulfix.c_str();
-	imgT *data4;
+	imgT *arbitraryImg;
 	//printf("%s\n",ss );
 	ofs.open(ss);
 
-	int planeSweep = (PP_RAW.resWidth)/PSWEEP;
+	int planeSweep = (INFO_VOL1.resWidth)/PSWEEP;
 	int incInterp = 0;
-	for(int t=0; t<PP_RAW.resWidth; t+=planeSweep,incInterp+=planeSweep)
+	for(int t=0; t<INFO_VOL1.resWidth; t+=planeSweep,incInterp+=planeSweep)
 	{
 		printf("%d\n",t );		
 		interp1 = interp1 /incInterp;
 		//interp2 = interp2 /t;
-		if(!externalImageLoaded)
-		{
-			data4 = (imgT*)calloc(PP_RAW.resWidth*PP_RAW.resHeight,sizeof(imgT*)* PP_RAW.resWidth*PP_RAW.resHeight);//sub imagens
 
-			d1.arbitraryPlane(data4,0,t,interp1,interp2,vec_normal,plane_d);
+		arbitraryImg = (imgT*)calloc(INFO_VOL1.resWidth*INFO_VOL1.resHeight,sizeof(imgT*)* INFO_VOL1.resWidth*INFO_VOL1.resHeight);//armazena plano arbitrario
+
+		data_vol1.arbitraryPlane(arbitraryImg,0,t,interp1,interp2,vec_normal,plane_d); //extrai um plano arbitrario do volume
 
 
-			DATAINFO savePixels;
-			savePixels.fileName = (char *) malloc(100);
-			strcpy(savePixels.fileName,"imagePlane.raw");
-			savePixels.resWidth = PP_RAW.resWidth;
-			savePixels.resHeight = PP_RAW.resHeight;
-			/*if(*/d1.saveModifiedImage(data4, savePixels);//) printf("Image saved (%s)!\n", savePixels.fileName);
-			free(savePixels.fileName);
-			savePixels.fileName=NULL;
+		DATAINFO savePixels;
+		savePixels.fileName = (char *) malloc(100);
+		strcpy(savePixels.fileName,"imagePlane.raw");
+		savePixels.resWidth = INFO_VOL1.resWidth;
+		savePixels.resHeight = INFO_VOL1.resHeight;
+		/*if(*/data_vol1.saveModifiedImage(arbitraryImg, savePixels);//) printf("Image saved (%s)!\n", savePixels.fileName);
+		free(savePixels.fileName);
+		savePixels.fileName=NULL;
 		//bestNow.bmSimValue = 1000;
-		}
-		//BM bestMatches[PP_RAW.resDepth][PP_RAW.resWidth*PP_RAW.resHeight];
+
+		//BM bestMatches[INFO_VOL1.resDepth][INFO_VOL1.resWidth*INFO_VOL1.resHeight];
 
 
 
@@ -241,7 +220,7 @@ int main(int argc, char **argv)
 		//printf("Finding the best match... \n");
 		//double startTime, endTime;
 		//startTime = getCPUTime( );
-		double t1,t2;
+		double time1,time2;
 
 		// double *x1, *x2;
 		// x1 = new double[5];
@@ -252,16 +231,16 @@ int main(int argc, char **argv)
 		// double yyy = calculateEntropy(x1,5);
 		// printf("%f, %f\n",xxx,yyy );
 
-		BM **bestMatches = (BM**)calloc(PP_RAW.resDepth,PP_RAW.resDepth * sizeof(BM*));
-		for (int i=0; i < PP_RAW.resDepth; i++)
-			bestMatches[i] = (BM*)calloc(PP_RAW.resWidth*PP_RAW.resHeight, sizeof(BM) * (PP_RAW.resWidth*PP_RAW.resHeight));
+		BM **bestMatches = (BM**)calloc(INFO_VOL1.resDepth,INFO_VOL1.resDepth * sizeof(BM*));
+		for (int i=0; i < INFO_VOL1.resDepth; i++)
+			bestMatches[i] = (BM*)calloc(INFO_VOL1.resWidth*INFO_VOL1.resHeight, sizeof(BM) * (INFO_VOL1.resWidth*INFO_VOL1.resHeight));
 
 		vector<Point> bestCoords;
 
 
 
-		int count2,count3;
-		count2=count3=0;
+		int countime2,count3;
+		countime2=count3=0;
 		int counts[PLANES][2];
 
 		for (int i = 0; i < PLANES; i++)
@@ -271,17 +250,17 @@ int main(int argc, char **argv)
 		}
 
 		imgT *subImg = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
-		t1=omp_get_wtime();
+		time1=omp_get_wtime();
 		
 		int planeDirection[9]={0,0,0,0,0,0,0,0};
 		
-		for (int iw = OFFSET; iw < PP_RAW.resWidth-OFFSET; iw+=PP_RAW.resampleFactorImg)
+		for (int iw = OFFSET; iw < INFO_VOL1.resWidth-OFFSET; iw+=INFO_VOL1.resampleFactorImg)
 		{
 			int blackImage = 0;
 
 			bool correctMatch = false;		
 			//printf(" %d\n",iw);
-			for (int ih = OFFSET; ih < PP_RAW.resHeight-OFFSET; ih+=PP_RAW.resampleFactorImg) //percorre imagem pixel //coluna
+			for (int ih = OFFSET; ih < INFO_VOL1.resHeight-OFFSET; ih+=INFO_VOL1.resampleFactorImg) //percorre imagem pixel //coluna
 			{
 				//if(correctMatch==0)
 				//{	
@@ -291,35 +270,32 @@ int main(int argc, char **argv)
 					{
 						for(int jj = 0; jj < PBASE; jj++)
 						{	
-							if(!externalImageLoaded)	
-								subImg[ijn(ii,jj,PBASE)] = data4[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,PP_RAW.resWidth)];
-							else
-								subImg[ijn(ii,jj,PBASE)] = imagePlane[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,PP_RAW.resWidth)];
-							if(subImg[ijn(ii,jj,PBASE)] <= 20)
-								blackImage++;
+							subImg[ijn(ii,jj,PBASE)] = arbitraryImg[ijn(iw-KERNEL+ii, ih-KERNEL+jj ,INFO_VOL1.resWidth)]; //armazena sub imagem
+							if(subImg[ijn(ii,jj,PBASE)] <= 20) //verifica se cada pixel da subimagem tem valor <= 20
+								blackImage++; //se tem atualiza contador
 						}
 					}
 						
-					if(blackImage<PBASE*PBASE)		
+					if(blackImage<PBASE*PBASE) //verifica se a quantidade de pixels pretos é menor que o tamanho da sub imagem, serve para descartar imagens compostas por informações irrelevantes
 					{
 
 
 						#pragma omp parallel for
 						 	
 
-						for (int vd = OFFSET; vd < PP_RAW.resDepth-OFFSET; vd+=PP_RAW.resampleFactorZ /*=PP_RAW.resampleFactor*/)
+						for (int vd = OFFSET; vd < INFO_VOL1.resDepth-OFFSET; vd+=INFO_VOL1.resampleFactorZ /*=INFO_VOL1.resampleFactor*/)
 						{
 							
 							bool allow = true;
 							QualityAssessment qualAssess;
-							float mpsnrV;					
-							imgT *t = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens
+							float similarityResult;					
+							imgT *subImgVol = (imgT*)calloc(PBASE*PBASE,sizeof(imgT*)* PBASE*PBASE);//sub imagens do volume de entrada
 							BM bestNow;
-							for (int vw = OFFSET; vw < PP_RAW.resWidth-OFFSET; vw+=PP_RAW.resampleFactor) //percorre imagem pixel //coluna
+							for (int vw = OFFSET; vw < INFO_VOL1.resWidth-OFFSET; vw+=INFO_VOL1.resampleFactor) //percorre imagem pixel //coluna
 							{
 								if(allow)
 								{
-									for (int vh = OFFSET; vh < PP_RAW.resHeight-OFFSET; vh+=PP_RAW.resampleFactor /*vh+=4*/) //a pixel //linha
+									for (int vh = OFFSET; vh < INFO_VOL1.resHeight-OFFSET; vh+=INFO_VOL1.resampleFactor /*vh+=4*/) //a pixel //linha
 									{
 
 										float bN = 1000;
@@ -327,23 +303,23 @@ int main(int argc, char **argv)
 										int sameVoxel = 0;
 										for (int p = 0; p < PLANES; p++)
 										{
-											buidImagePlanes(vd,vw,vh,PP_RAW.resWidth,data1,p,t); //passa pro ref o t
-					            			mpsnrV = qualAssess.getPSNR<imgT>(subImg,t,PBASE,PBASE,PBASE);
+											buidImagePlanes(vd,vw,vh,INFO_VOL1.resWidth,raw_vol2,p,subImgVol); //passa t por ref. cria os planos de imagem nas 9 orientações
+					            			similarityResult = qualAssess.getPSNR<imgT>(subImg,subImgVol,PBASE,PBASE,PBASE);
 					            		
-					            			//mpsnrV = qualAssess.getMSE<imgT>(subImg,t,PBASE,PBASE,PBASE);
-					            			//mpsnrV = iqa_ssim(t,subImg,PBASE,PBASE,PBASE,1,&ssim_args);
-					            			//mpsnrV = iqa_ms_ssim(t,subImg,PBASE,PBASE,PBASE,0);
-					            			//mpsnrV = iqa_psnr(subImg,t,PBASE,PBASE,PBASE);
-					            			//mpsnrV = iqa_mse(subImg,t,PBASE,PBASE,PBASE);
-					            			//mpsnrV = calculateMutualInformation(sb, st, PBASE*PBASE);
+					            			//similarityResult = qualAssess.getMSE<imgT>(subImg,t,PBASE,PBASE,PBASE);
+					            			//similarityResult = iqa_ssim(t,subImg,PBASE,PBASE,PBASE,1,&ssim_args);
+					            			//similarityResult = iqa_ms_ssim(t,subImg,PBASE,PBASE,PBASE,0);
+					            			//similarityResult = iqa_psnr(subImg,t,PBASE,PBASE,PBASE);
+					            			//similarityResult = iqa_mse(subImg,t,PBASE,PBASE,PBASE);
+					            			//similarityResult = calculateMutualInformation(sb, st, PBASE*PBASE);
 					            			//float iqa_ssim(const unsigned char *ref, const unsigned char *cmp, int w, int h, int stride, int gaussian, const struct iqa_ssim_args *args);
-					            			// if(mpsnrV <= 3.0f)
-					            			// 	printf("%f\n", mpsnrV );
-											if(mpsnrV <= bN)
+					            			// if(similarityResult <= 3.0f)
+					            			// 	printf("%f\n", similarityResult );
+											if(similarityResult <= bN)
 											{
-												if(mpsnrV<=0.0f)
+												if(similarityResult<=0.0f)
 												{	
-											//		printf("%f\n", mpsnrV);
+											//		printf("%f\n", similarityResult);
 											//		printf("+++++++++++++++++++\n");
 											//		scanf("%d",&blackImage);
 													bestNow.bmSimValue = 255;
@@ -351,7 +327,7 @@ int main(int argc, char **argv)
 													counts[p][0]++;
 													counts[p][1]=vd-OFFSET;
 													sameVoxel++;
-													bestNow.bmColorValue = data1[vd][ijn(vw,vh,PP_RAW.resWidth)];			
+													bestNow.bmColorValue = raw_vol1[vd][ijn(vw,vh,INFO_VOL1.resWidth)];			
 													bestNow.bmPlane = p;
 													bestNow.bmCoord.x = vd;
 													bestNow.bmCoord.y = vw;
@@ -370,7 +346,7 @@ int main(int argc, char **argv)
 													grava=false;
 
 
-												bN = mpsnrV;
+												bN = similarityResult;
 
 											}	
 										}
@@ -389,9 +365,9 @@ int main(int argc, char **argv)
 										{
 											if(bestNow.bmPlane == greaterDirection )
 											{
-												bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)] = bestNow;
-												Point coord(((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x / (float)PP_RAW.resWidth * 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y / (float)PP_RAW.resHeight* 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z / (float)PP_RAW.resDepth * 2.0f) - 1.0f);
-												//Point coord(bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.x,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.y,bestMatches[vd][ijn(vw,vh,PP_RAW.resWidth)].bmCoord.z);
+												bestMatches[vd][ijn(vw,vh,INFO_VOL1.resWidth)] = bestNow;
+												Point coord(((float)bestMatches[vd][ijn(vw,vh,INFO_VOL1.resWidth)].bmCoord.x / (float)INFO_VOL1.resWidth * 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,INFO_VOL1.resWidth)].bmCoord.y / (float)INFO_VOL1.resHeight* 2.0f) - 1.0f,((float)bestMatches[vd][ijn(vw,vh,INFO_VOL1.resWidth)].bmCoord.z / (float)INFO_VOL1.resDepth * 2.0f) - 1.0f);
+												//Point coord(bestMatches[vd][ijn(vw,vh,INFO_VOL1.resWidth)].bmCoord.x,bestMatches[vd][ijn(vw,vh,INFO_VOL1.resWidth)].bmCoord.y,bestMatches[vd][ijn(vw,vh,INFO_VOL1.resWidth)].bmCoord.z);
 												bestCoords.push_back(coord);
 											}
 											//printf("%f %f %f\n", coord.x, coord.y, coord.z );
@@ -402,12 +378,12 @@ int main(int argc, char **argv)
 									}
 								}
 							}
-							free(t);
-							t=NULL;
+							free(subImgVol);
+							subImgVol=NULL;
 						}
 					}
 				//}
-				count2++;
+				countime2++;
 			}
 			correctMatch=0;
 		}
@@ -416,26 +392,26 @@ int main(int argc, char **argv)
 		free (subImg);
 		subImg=NULL;
 
-		t2=omp_get_wtime();
-		printf("Time with stack array: %12.3f sec, \n", t2-t1);
+		time2=omp_get_wtime();
+		printf("Time with stack array: %12.3f sec, \n", time2-time1);
 
-		imgT **simVolume = (imgT**)calloc(PP_RAW.resWidth, PP_RAW.resDepth * sizeof(imgT*));
-		for (int i=0; i < PP_RAW.resDepth; i++)
-			simVolume[i] = (imgT*)calloc(PP_RAW.resWidth, sizeof(imgT) * (PP_RAW.resWidth*PP_RAW.resHeight));
+		imgT **simVolume = (imgT**)calloc(INFO_VOL1.resWidth, INFO_VOL1.resDepth * sizeof(imgT*));
+		for (int i=0; i < INFO_VOL1.resDepth; i++)
+			simVolume[i] = (imgT*)calloc(INFO_VOL1.resWidth, sizeof(imgT) * (INFO_VOL1.resWidth*INFO_VOL1.resHeight));
 
 
 		//excluir os pontos que não são do plano principal
-		for (int d = 0; d < PP_RAW.resDepth; d++)
+		for (int d = 0; d < INFO_VOL1.resDepth; d++)
 		{
-			for (int w = 0; w < PP_RAW.resWidth; w++)
+			for (int w = 0; w < INFO_VOL1.resWidth; w++)
 			{
-				for (int h = 0; h < PP_RAW.resHeight; h++)
+				for (int h = 0; h < INFO_VOL1.resHeight; h++)
 				{
-					simVolume[d][ijn(w,h,PP_RAW.resWidth)] = (imgT)bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue;
-					// if(bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue == 0)
-					// 	printf("%d=>%f\t%d *********\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
+					simVolume[d][ijn(w,h,INFO_VOL1.resWidth)] = (imgT)bestMatches[d][ijn(w,h,INFO_VOL1.resWidth)].bmSimValue;
+					// if(bestMatches[d][ijn(w,h,INFO_VOL1.resWidth)].bmSimValue == 0)
+					// 	printf("%d=>%f\t%d *********\n",bestMatches[d][ijn(w,h,INFO_VOL1.resWidth)].bmPlane,bestMatches[d][ijn(w,h,INFO_VOL1.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,INFO_VOL1.resWidth)].bmColorValue  );
 					// else
-					// 	printf("%d=>%f\t%d\n",bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmPlane,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,PP_RAW.resWidth)].bmColorValue  );
+					// 	printf("%d=>%f\t%d\n",bestMatches[d][ijn(w,h,INFO_VOL1.resWidth)].bmPlane,bestMatches[d][ijn(w,h,INFO_VOL1.resWidth)].bmSimValue,bestMatches[d][ijn(w,h,INFO_VOL1.resWidth)].bmColorValue  );
 				}
 
 			}
@@ -445,10 +421,10 @@ int main(int argc, char **argv)
 		DATAINFO saveVoxels;
 		saveVoxels.fileName = (char *) malloc(100);
 		strcpy(saveVoxels.fileName,"volumePlane.raw");
-		saveVoxels.resWidth = PP_RAW.resWidth;
-		saveVoxels.resHeight = PP_RAW.resHeight;
-		saveVoxels.resDepth = PP_RAW.resDepth;
-		/*if(*/d1.saveModifiedDataset<imgT>(simVolume, saveVoxels);/*) printf("Volume saved (%s)!\n", saveVoxels.fileName);*/
+		saveVoxels.resWidth = INFO_VOL1.resWidth;
+		saveVoxels.resHeight = INFO_VOL1.resHeight;
+		saveVoxels.resDepth = INFO_VOL1.resDepth;
+		/*if(*/data_vol1.saveModifiedDataset<imgT>(simVolume, saveVoxels);/*) printf("Volume saved (%s)!\n", saveVoxels.fileName);*/
 		free(saveVoxels.fileName);
 		saveVoxels.fileName =NULL;
 
@@ -529,7 +505,7 @@ int main(int argc, char **argv)
 		printf("%f\n",planeDistance2);
 		printf("%f\n",angle1 );
 
-		ofs << planeDistance1 <<" "<< angle1 <<" "<< t2-t1 << "\t\t" << planeDistance2 <<" "<< angle1 <<" "<< t2-t1 <<"\t\t\t";
+		ofs << planeDistance1 <<" "<< angle1 <<" "<< time2-time1 << "\t\t" << planeDistance2 <<" "<< angle1 <<" "<< time2-time1 <<"\t\t\t";
  		ofs << vec_normal.x << " "<< vec_normal.y << " " << vec_normal.z <<" "<< plane_d << "\t\t";
 		ofs << myvec_normal.x << " "<< myvec_normal.y << " " << myvec_normal.z <<" "<< plane.d() << "\t\t";
 		ofs << v0_d<< " "<< v1_d<< " "<< v2_d<< " " << v3_d <<endl;
@@ -538,15 +514,15 @@ int main(int argc, char **argv)
  		cout << myvec_normal.x << " "<< myvec_normal.y << " " << myvec_normal.z <<" "<< plane.d() << endl;
 
 		//ofs << vec_normal.z << " "<< vec_normal.y << " " << vec_normal.x << endl;
-		//ofs << t2-t1 <<endl <<endl;
+		//ofs << time2-time1 <<endl <<endl;
 
 		 //  	for(int i = 0; i < PLANES; i++)
 		 //  	{
 		 //  		printf("%d=>%d,%d\n",i,counts[i][0],counts[i][1]);
 		 //  	}
-			// printf("%d,%d,%d\n",count2,summ,count3 );
+			// printf("%d,%d,%d\n",countime2,summ,count3 );
 
-		for (int i=0; i < PP_RAW.resDepth; i++)
+		for (int i=0; i < INFO_VOL1.resDepth; i++)
 		{
 			free(simVolume[i]); 
 			free(bestMatches[i]);
@@ -554,14 +530,11 @@ int main(int argc, char **argv)
 		free(simVolume);
 		free(bestMatches);
 		
-		if(!externalImageLoaded)
-			free(data4);
-		else
-			free(imagePlane);
+		free(arbitraryImg);
+
 		simVolume=NULL;
 		bestMatches=NULL;
-		data4=NULL;
-		imagePlane=NULL;
+		arbitraryImg=NULL;
 
 
 	}
