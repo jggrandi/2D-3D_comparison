@@ -20,7 +20,7 @@ using namespace std;
 
 #define ijn(a,b,n) ((a)*(n))+b
 
-#define KERNEL 1
+#define KERNEL 2
 #define PBASE  KERNEL*2+1
 #define OFFSET KERNEL
 #define PLANES 9
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 
 	int planeSweep = (INFO_VOL1.resWidth)/PSWEEP;
 	int incInterp = 0;
-	for(int t=0; t<INFO_VOL1.resWidth; t+=planeSweep,incInterp+=planeSweep)
+	for(int t=25; t<INFO_VOL1.resWidth; t+=planeSweep,incInterp+=planeSweep)
 	{
 		printf("%d\n",t );		
 		interp1 = interp1 /incInterp;
@@ -307,7 +307,7 @@ int main(int argc, char **argv)
 					            			similarityResult = qualAssess.getPSNR<imgT>(subImg,subImgVol,PBASE,PBASE,PBASE);
 					            		
 					            			//similarityResult = qualAssess.getMSE<imgT>(subImg,t,PBASE,PBASE,PBASE);
-					            			//similarityResult = iqa_ssim(t,subImg,PBASE,PBASE,PBASE,1,&ssim_args);
+					            			//similarityResult = iqa_ssim(subImg,subImgVol,PBASE,PBASE,PBASE,1,&ssim_args);
 					            			//similarityResult = iqa_ms_ssim(t,subImg,PBASE,PBASE,PBASE,0);
 					            			//similarityResult = iqa_psnr(subImg,t,PBASE,PBASE,PBASE);
 					            			//similarityResult = iqa_mse(subImg,t,PBASE,PBASE,PBASE);
@@ -317,7 +317,7 @@ int main(int argc, char **argv)
 					            			// 	printf("%f\n", similarityResult );
 											if(similarityResult <= bN)
 											{
-												if(similarityResult<=0.0f)
+												if(similarityResult<=2.5f)
 												{	
 											//		printf("%f\n", similarityResult);
 											//		printf("+++++++++++++++++++\n");
@@ -336,10 +336,10 @@ int main(int argc, char **argv)
 													if(sameVoxel==1)
 														allow = false;
 													planeDirection[p]++;
-													// for (int xd=0; xd<9;xd++)
-													// {
-													// 	printf("[%d,%d,%d,%d,%d,%d,%d,%d,%d]\n",planeDirection[0],planeDirection[1],planeDirection[2],planeDirection[3],planeDirection[4],planeDirection[5],planeDirection[6],planeDirection[7],planeDirection[8] );
-													// }
+													 for (int xd=0; xd<9;xd++)
+													 {
+													 	printf("[%d,%d,%d,%d,%d,%d,%d,%d,%d]\n",planeDirection[0],planeDirection[1],planeDirection[2],planeDirection[3],planeDirection[4],planeDirection[5],planeDirection[6],planeDirection[7],planeDirection[8] );
+													 }
 
 												}
 												else
