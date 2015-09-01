@@ -11,7 +11,7 @@ SRC = main.cpp
 
 
 I_ARRAY = -I../../my_libs/Array
-L_ARRAY = -L../../my_libs/Array
+L_ARRAY = -I../../my_libs/Array
 
 I_CPUTIME = -I../../my_libs/CPUTime/src
 L_CPUTIME = -I../../my_libs/CPUTime/bin
